@@ -139,6 +139,111 @@ function LoginScreen({ onLogin }: { onLogin: (user: string) => void }) {
   );
 }
 
+// ─── Image Lightbox Preview Modal ─────────────────────────────────────────────
+
+function ImageLightboxModal({
+  imageUrl,
+  title,
+  onClose,
+}: {
+  imageUrl: string;
+  title?: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(imageUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b flex items-center justify-between bg-muted/40 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="p-1.5 bg-primary/10 text-primary rounded-lg shrink-0">
+              <ImageIcon size={16} />
+            </span>
+            <div className="min-w-0">
+              <h3 className="font-heading font-bold text-sm truncate">{title || "Image Preview"}</h3>
+              <p className="text-[11px] text-muted-foreground font-mono truncate max-w-xs sm:max-w-md">{imageUrl}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="px-2.5 py-1.5 rounded-lg border bg-background hover:bg-muted text-xs font-medium flex items-center gap-1 transition shadow-xs"
+              title="Copy URL"
+            >
+              {copied ? <><Check size={12} className="text-green-600" /> Copied</> : <><Copy size={12} /> Copy URL</>}
+            </button>
+            <a
+              href={imageUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 rounded-lg border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition shadow-xs"
+              title="Open full image in new tab"
+            >
+              <ExternalLink size={14} />
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 bg-black/5 dark:bg-black/30 flex items-center justify-center p-4 overflow-auto min-h-[300px]">
+          <img
+            src={imageUrl}
+            alt={title || "Preview"}
+            className="max-w-full max-h-[65vh] object-contain rounded-xl shadow-md border"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "";
+              (e.target as HTMLImageElement).alt = "Failed to load image";
+            }}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-2.5 border-t bg-muted/20 flex items-center justify-between text-xs text-muted-foreground shrink-0">
+          <span>Click outside or press <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">Esc</kbd> to close</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition text-xs shadow-xs"
+          >
+            Close Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Blog Live Preview Modal ──────────────────────────────────────────────────
 
 function BlogPreviewModal({ blog, onClose }: { blog: BlogPost; onClose: () => void }) {
@@ -433,6 +538,8 @@ function ToursPanel() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
 
   useEffect(() => {
     fetch("/api/tours")
@@ -570,7 +677,7 @@ function ToursPanel() {
             </button>
             <button onClick={handleMigrate} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition"><Save size={14} /> Migrate Local Data</button>
             <button onClick={handleExport} className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition"><Copy size={14} /> Export Code</button>
-            <button onClick={handleSave} className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition"><Save size={14} /> Save to DB</button>
+            <button onClick={handleSave} className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition"><Save size={14} /> Save</button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
@@ -597,24 +704,53 @@ function ToursPanel() {
                 <input type="checkbox" id="tourHidden" checked={!!form.isHidden} onChange={e => hc("isHidden", e.target.checked)} className="w-4 h-4 accent-primary" />
                 <label htmlFor="tourHidden" className="text-sm cursor-pointer">Hide this tour from public</label>
               </div>
-              <Field label="Main Cover Image (Uploaded to Server)">
+              <Field label="Main Cover Image (Uploaded to Server or URL)">
                 <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input type="text" className={inputCls} placeholder="/uploads/tours/..." value={form.image} onChange={e => hc("image", e.target.value)} />
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      type="text"
+                      className={`flex-1 min-w-[220px] ${inputCls}`}
+                      placeholder="Paste image URL (https://... or /uploads/tours/...)"
+                      value={form.image}
+                      onChange={e => hc("image", e.target.value)}
+                    />
                     <label className="shrink-0 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl font-medium hover:opacity-90 transition cursor-pointer flex items-center gap-1.5 text-sm shadow-sm">
                       {uploading === "image" ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" /> : <><ImageIcon size={14} /> Upload from Device</>}
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={!!uploading} />
                     </label>
                     {form.image && (
-                      <button type="button" onClick={() => hc("image", "")} className="px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition">
-                        Remove
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImgUrl(form.image)}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800 rounded-xl transition"
+                          title="Preview Image Full Size"
+                        >
+                          <Eye size={13} /> Preview Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hc("image", "")}
+                          className="px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition"
+                        >
+                          Remove
+                        </button>
+                      </>
                     )}
                   </div>
                   {form.image && (
-                    <div className="relative w-32 h-20 rounded-xl overflow-hidden border shadow-sm group">
-                      <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
-                      <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">Server</span>
+                    <div
+                      onClick={() => setPreviewImgUrl(form.image)}
+                      className="relative w-36 h-24 rounded-xl overflow-hidden border shadow-sm group cursor-pointer hover:ring-2 hover:ring-primary transition"
+                      title="Click to preview image full size"
+                    >
+                      <img src={form.image} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-medium gap-1">
+                        <Eye size={14} /> Preview
+                      </div>
+                      <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                        Cover
+                      </span>
                     </div>
                   )}
                 </div>
@@ -623,41 +759,117 @@ function ToursPanel() {
             </section>
 
             <section className="bg-card border rounded-2xl p-5 space-y-4">
-              <h3 className="font-heading font-bold border-b pb-2">Gallery & Media (Stored on Server)</h3>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Tour Gallery ({form.images?.length || 0} Images)</Label>
-                  <label className="bg-primary text-primary-foreground px-3.5 py-1.5 rounded-xl font-medium hover:opacity-90 transition cursor-pointer flex items-center gap-1.5 text-xs shadow-sm">
-                    {uploading === "gallery" ? <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent" /> : <><Plus size={13} /> Add Gallery Images</>}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                <div>
+                  <h3 className="font-heading font-bold">Gallery & Media ({form.images?.length || 0} Images)</h3>
+                  <p className="text-xs text-muted-foreground">Upload photos or paste URLs for the tour image slider</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="bg-primary text-primary-foreground px-3.5 py-2 rounded-xl font-medium hover:opacity-90 transition cursor-pointer flex items-center gap-1.5 text-xs shadow-sm">
+                    {uploading === "gallery" ? <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent" /> : <><Plus size={13} /> Upload Images</>}
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={!!uploading} />
                   </label>
                 </div>
+              </div>
 
-                {form.images && form.images.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 p-3 bg-muted/20 border rounded-2xl">
-                    {form.images.map((imgUrl, gIdx) => (
-                      <div key={gIdx} className="relative group aspect-square rounded-xl overflow-hidden border bg-background shadow-xs">
-                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+              {/* Add Another Image Toolbar */}
+              <div className="p-3 bg-muted/40 border rounded-xl space-y-2">
+                <Label>Add Another Image</Label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="text"
+                    placeholder="Paste image URL (https://... or /uploads/tours/...)"
+                    value={newGalleryUrl}
+                    onChange={e => setNewGalleryUrl(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (newGalleryUrl.trim()) {
+                          hc("images", [...(form.images || []), newGalleryUrl.trim()]);
+                          setNewGalleryUrl("");
+                        }
+                      }
+                    }}
+                    className={`flex-1 min-w-[220px] ${inputCls}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newGalleryUrl.trim()) {
+                        hc("images", [...(form.images || []), newGalleryUrl.trim()]);
+                        setNewGalleryUrl("");
+                      }
+                    }}
+                    disabled={!newGalleryUrl.trim()}
+                    className="px-3.5 py-2 bg-secondary text-secondary-foreground text-xs font-semibold rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Plus size={14} /> Add Image URL
+                  </button>
+                  <label className="bg-primary/10 text-primary border border-primary/20 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-primary/20 transition flex items-center gap-1.5">
+                    <ImageIcon size={14} /> Upload File
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={!!uploading} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Gallery Grid */}
+              {form.images && form.images.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-3 bg-muted/20 border rounded-2xl">
+                  {form.images.map((imgUrl, gIdx) => (
+                    <div key={gIdx} className="relative group aspect-square rounded-xl overflow-hidden border bg-background shadow-xs hover:ring-2 hover:ring-primary/50 transition">
+                      <img src={imgUrl} alt={`Gallery ${gIdx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+                      
+                      <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">
+                        #{gIdx + 1}
+                      </span>
+
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImgUrl(imgUrl)}
+                          className="p-1.5 bg-white/90 text-black hover:bg-white rounded-lg transition shadow-sm"
+                          title="Preview Image"
+                        >
+                          <Eye size={13} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
                             const updated = form.images?.filter((_, idx) => idx !== gIdx) || [];
                             hc("images", updated);
                           }}
-                          className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-lg opacity-0 group-hover:opacity-100 transition shadow-sm"
+                          className="p-1.5 bg-destructive text-destructive-foreground hover:opacity-90 rounded-lg transition shadow-sm"
                           title="Remove from gallery"
                         >
-                          <Trash size={11} />
+                          <Trash size={13} />
                         </button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+
+                  {/* Add Another Image Tile */}
+                  <label className="aspect-square border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-primary hover:bg-primary/5 transition text-muted-foreground hover:text-primary p-2">
+                    <Plus size={20} />
+                    <span className="text-[11px] font-semibold text-center leading-tight">Add Another Image</span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={!!uploading} />
+                  </label>
+                </div>
+              ) : (
+                <div className="p-8 border-2 border-dashed rounded-2xl text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+                    <ImageIcon size={24} />
                   </div>
-                ) : (
-                  <div className="p-6 border-2 border-dashed rounded-2xl text-center text-xs text-muted-foreground">
-                    No gallery images added yet. Click &quot;Add Gallery Images&quot; to upload photos from your device.
+                  <div>
+                    <p className="font-semibold text-sm">No gallery images added yet</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Click &quot;Add Another Image&quot; above to upload from device or paste URLs.</p>
                   </div>
-                )}
-              </div>
+                  <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium cursor-pointer hover:opacity-90 transition shadow-sm">
+                    <Plus size={14} /> Add Another Image
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={!!uploading} />
+                  </label>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Included (Comma separated)"><textarea className={`${textareaCls} h-28`} value={form.included?.join(",\n")} onChange={e => hc("included", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} /></Field>
                 <Field label="Excluded (Comma separated)"><textarea className={`${textareaCls} h-28`} value={form.excluded?.join(",\n")} onChange={e => hc("excluded", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} /></Field>
@@ -710,6 +922,9 @@ function ToursPanel() {
       {showPreview && (
         <TourPreviewModal tour={form} onClose={() => setShowPreview(false)} />
       )}
+      {previewImgUrl && (
+        <ImageLightboxModal imageUrl={previewImgUrl} title={form.name ? `${form.name} - Image` : "Tour Image"} onClose={() => setPreviewImgUrl(null)} />
+      )}
     </div>
   );
 }
@@ -724,6 +939,7 @@ function BlogsPanel() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/blogs")
@@ -839,7 +1055,7 @@ function BlogsPanel() {
             </button>
             <button onClick={handleMigrate} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition"><Save size={14} /> Migrate Local Data</button>
             <button onClick={handleExport} className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition"><Copy size={14} /> Export Code</button>
-            <button onClick={handleSave} className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition"><Save size={14} /> Save to DB</button>
+            <button onClick={handleSave} className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition"><Save size={14} /> Save</button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
@@ -864,25 +1080,54 @@ function BlogsPanel() {
             </section>
 
             <section className="bg-card border rounded-2xl p-5 space-y-4">
-              <h3 className="font-heading font-bold border-b pb-2">Cover Image & Author (Stored on Server)</h3>
+              <h3 className="font-heading font-bold border-b pb-2">Cover Image & Author (Stored on Server or URL)</h3>
               <Field label="Cover Image">
                 <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input type="text" className={inputCls} placeholder="/uploads/blogs/..." value={form.image} onChange={e => hc("image", e.target.value)} />
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      type="text"
+                      className={`flex-1 min-w-[220px] ${inputCls}`}
+                      placeholder="Paste image URL (https://... or /uploads/blogs/...)"
+                      value={form.image}
+                      onChange={e => hc("image", e.target.value)}
+                    />
                     <label className="shrink-0 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl font-medium cursor-pointer flex items-center gap-1.5 text-sm hover:opacity-90 transition shadow-sm">
                       {uploading === "image" ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" /> : <><ImageIcon size={14} /> Upload from Device</>}
                       <input type="file" accept="image/*" className="hidden" onChange={e => handleImgUpload(e, "image")} disabled={!!uploading} />
                     </label>
                     {form.image && (
-                      <button type="button" onClick={() => hc("image", "")} className="px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition">
-                        Remove
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImgUrl(form.image)}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800 rounded-xl transition"
+                          title="Preview Cover Image Full Size"
+                        >
+                          <Eye size={13} /> Preview Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hc("image", "")}
+                          className="px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition"
+                        >
+                          Remove
+                        </button>
+                      </>
                     )}
                   </div>
                   {form.image && (
-                    <div className="relative w-36 h-24 rounded-xl overflow-hidden border shadow-sm">
-                      <img src={form.image} alt="Cover Preview" className="w-full h-full object-cover" />
-                      <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">Server</span>
+                    <div
+                      onClick={() => setPreviewImgUrl(form.image)}
+                      className="relative w-36 h-24 rounded-xl overflow-hidden border shadow-sm group cursor-pointer hover:ring-2 hover:ring-primary transition"
+                      title="Click to preview cover image"
+                    >
+                      <img src={form.image} alt="Cover Preview" className="w-full h-full object-cover group-hover:scale-105 transition duration-200" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-medium gap-1">
+                        <Eye size={14} /> Preview
+                      </div>
+                      <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                        Cover
+                      </span>
                     </div>
                   )}
                 </div>
@@ -891,21 +1136,48 @@ function BlogsPanel() {
                 <Field label="Author Name"><input type="text" className={inputCls} value={form.author} onChange={e => hc("author", e.target.value)} /></Field>
                 <Field label="Author Profile Image">
                   <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input type="text" className={inputCls} placeholder="/uploads/blogs/..." value={form.authorImage} onChange={e => hc("authorImage", e.target.value)} />
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="text"
+                        className={`flex-1 min-w-[160px] ${inputCls}`}
+                        placeholder="Paste image URL or upload..."
+                        value={form.authorImage}
+                        onChange={e => hc("authorImage", e.target.value)}
+                      />
                       <label className="shrink-0 bg-primary text-primary-foreground px-3.5 py-2.5 rounded-xl font-medium cursor-pointer flex items-center gap-1.5 text-sm hover:opacity-90 transition shadow-sm">
                         {uploading === "authorImage" ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" /> : <ImageIcon size={14} />}
                         <input type="file" accept="image/*" className="hidden" onChange={e => handleImgUpload(e, "authorImage")} disabled={!!uploading} />
                       </label>
                       {form.authorImage && (
-                        <button type="button" onClick={() => hc("authorImage", "")} className="px-2.5 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition">
-                          Remove
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImgUrl(form.authorImage)}
+                            className="p-2 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800 rounded-xl transition"
+                            title="Preview Author Image"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => hc("authorImage", "")}
+                            className="px-2.5 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-xl border transition"
+                          >
+                            Remove
+                          </button>
+                        </>
                       )}
                     </div>
                     {form.authorImage && (
-                      <div className="w-12 h-12 rounded-full overflow-hidden border shadow-xs">
-                        <img src={form.authorImage} alt="Author" className="w-full h-full object-cover" />
+                      <div
+                        onClick={() => setPreviewImgUrl(form.authorImage)}
+                        className="relative w-12 h-12 rounded-full overflow-hidden border shadow-xs group cursor-pointer hover:ring-2 hover:ring-primary transition"
+                        title="Click to preview author avatar"
+                      >
+                        <img src={form.authorImage} alt="Author" className="w-full h-full object-cover group-hover:scale-105 transition" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                          <Eye size={12} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -937,6 +1209,9 @@ function BlogsPanel() {
       </div>
       {showPreview && (
         <BlogPreviewModal blog={form} onClose={() => setShowPreview(false)} />
+      )}
+      {previewImgUrl && (
+        <ImageLightboxModal imageUrl={previewImgUrl} title={form.title ? `${form.title} - Image` : "Blog Image"} onClose={() => setPreviewImgUrl(null)} />
       )}
     </div>
   );
@@ -1085,6 +1360,7 @@ function MediaPanel() {
   const [uploading, setUploading] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
 
   const fetchImages = () => {
     setLoading(true);
@@ -1182,21 +1458,36 @@ function MediaPanel() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {images.map(img => (
               <div key={img.id} className="group relative bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
-                <div className="aspect-square bg-muted/40 relative overflow-hidden">
+                <div
+                  onClick={() => setPreviewImgUrl(img.url)}
+                  className="aspect-square bg-muted/40 relative overflow-hidden cursor-pointer"
+                  title="Click to preview full size"
+                >
                   <img src={img.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                   <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded-md text-[10px] uppercase font-bold backdrop-blur-sm">
                     {img.folder || "misc"}
                   </span>
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                    <span className="p-2 bg-black/50 rounded-full backdrop-blur-xs"><Eye size={16} /></span>
+                  </div>
                 </div>
                 <div className="p-2.5 space-y-1.5 bg-card">
                   <p className="text-[11px] font-mono text-muted-foreground truncate" title={img.url}>{img.url.split("/").pop()}</p>
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewImgUrl(img.url)}
+                      className="p-1.5 rounded-lg border bg-background hover:bg-muted text-xs transition"
+                      title="Preview Image"
+                    >
+                      <Eye size={13} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleCopy(img.url)}
-                      className={`w-full py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition ${copiedUrl === img.url ? "bg-green-600 text-white" : "bg-muted text-foreground hover:bg-muted/80"}`}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition ${copiedUrl === img.url ? "bg-green-600 text-white" : "bg-muted text-foreground hover:bg-muted/80"}`}
                     >
-                      {copiedUrl === img.url ? <><Check size={12} /> Copied URL</> : <><Copy size={12} /> Copy URL</>}
+                      {copiedUrl === img.url ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
                     </button>
                   </div>
                 </div>
@@ -1205,6 +1496,10 @@ function MediaPanel() {
           </div>
         )}
       </div>
+
+      {previewImgUrl && (
+        <ImageLightboxModal imageUrl={previewImgUrl} title="Media Library Image" onClose={() => setPreviewImgUrl(null)} />
+      )}
     </div>
   );
 }

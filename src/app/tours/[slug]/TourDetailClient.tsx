@@ -97,22 +97,32 @@ export default function TourDetailClient({ slug }: Props) {
             {/* Left Content */}
             <div className="lg:col-span-2 space-y-8">
               {/* Image Gallery */}
-              <div>
-                <div className="relative rounded-2xl overflow-hidden h-[350px] md:h-[450px]">
-                  <img src={tour.images[mainImage]} alt={tour.name} className="w-full h-full object-cover" />
-                  <span className="absolute bottom-4 right-4 bg-foreground/60 text-background px-3 py-1 rounded-full text-sm">
-                    {mainImage + 1} / {tour.images.length}
-                  </span>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  {tour.images.map((img, i) => (
-                    <button key={i} onClick={() => setMainImage(i)}
-                      className={`w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === mainImage ? "border-primary" : "border-transparent"}`}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {(() => {
+                const tourImages = (tour.images && tour.images.length > 0) ? tour.images : (tour.image ? [tour.image] : ["https://images.unsplash.com/photo-1583147610182-5c1d66a742d3?w=800&q=80"]);
+                const currentImg = tourImages[mainImage] || tourImages[0];
+                return (
+                  <div>
+                    <div className="relative rounded-2xl overflow-hidden h-[350px] md:h-[450px]">
+                      <img src={currentImg} alt={tour.name} className="w-full h-full object-cover" />
+                      {tourImages.length > 1 && (
+                        <span className="absolute bottom-4 right-4 bg-foreground/60 text-background px-3 py-1 rounded-full text-sm">
+                          {mainImage + 1} / {tourImages.length}
+                        </span>
+                      )}
+                    </div>
+                    {tourImages.length > 1 && (
+                      <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                        {tourImages.map((img, i) => (
+                          <button key={i} onClick={() => setMainImage(i)}
+                            className={`w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors shrink-0 ${i === mainImage ? "border-primary" : "border-transparent"}`}>
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Header */}
               <div>

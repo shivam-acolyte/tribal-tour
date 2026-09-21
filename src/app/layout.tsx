@@ -88,6 +88,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: BRAND.url,
   },
+  icons: {
+    icon: [
+      { url: "/logo.webp", type: "image/webp" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    shortcut: "/logo.webp",
+    apple: "/logo.webp",
+  },
 };
 
 export default function RootLayout({
