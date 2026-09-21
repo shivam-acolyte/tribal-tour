@@ -29,7 +29,7 @@ const PopularTrips = () => {
   return (
     <section className="pt-12 md:pt-16 pb-8 md:pb-10 px-4 md:px-8">
       <div className="container-main">
-        <SectionHeader tag="🔥 Top Picks" title="Popular City Trips" subtitle="Hand-picked tours loved by thousands of travelers" />
+        <SectionHeader tag="🔥 Top Picks" title="Popular Tour Packages" subtitle="Hand-picked tribal journeys loved by thousands of travelers" />
         {loading ? (
           <div className="flex justify-center items-center py-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -44,16 +44,22 @@ const PopularTrips = () => {
             ))}
           </div>
         )}
-        <div className="text-center mt-6 md:mt-8">
+        <div className="flex flex-wrap justify-center items-center gap-4 mt-6 md:mt-8">
           <Link
-          href="/tours"
-          className="inline-block px-8 py-3 border-2 border-primary text-primary font-medium rounded-xl hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          View All Tours
-        </Link>
+            href="/packages"
+            className="inline-block px-8 py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:opacity-90 transition-opacity shadow-sm"
+          >
+            Explore All Packages
+          </Link>
+          <Link
+            href="/tours"
+            className="inline-block px-8 py-3 border-2 border-primary text-primary font-medium rounded-xl hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            View All Tours
+          </Link>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 );
 };
 
