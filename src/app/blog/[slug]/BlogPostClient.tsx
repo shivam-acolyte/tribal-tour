@@ -135,9 +135,16 @@ export default function BlogPostClient({ slug }: Props) {
                 </div>
               </a>
             </div>
-            <div className="prose prose-lg max-w-none text-muted-foreground leading-relaxed space-y-4">
-              <p>{blog.excerpt}</p>
-              <div className="blog-content" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+            <div className="space-y-6">
+              {blog.excerpt && (
+                <p className="text-lg md:text-xl font-medium text-foreground/90 italic border-l-4 border-orange pl-4 py-1 leading-relaxed bg-orange/5 rounded-r-xl">
+                  {blog.excerpt}
+                </p>
+              )}
+              <div
+                className="prose prose-lg dark:prose-invert max-w-none text-foreground/80 leading-relaxed prose-headings:font-heading prose-headings:font-bold prose-headings:text-foreground prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:text-primary prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-li:my-1 prose-strong:text-foreground"
+                dangerouslySetInnerHTML={{ __html: safeHtml }}
+              />
             </div>
 
             {/* Author Bio */}
