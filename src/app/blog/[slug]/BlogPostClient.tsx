@@ -17,17 +17,23 @@ interface Props {
 }
 
 export default function BlogPostClient({ slug }: Props) {
-  const [blog, setBlog] = useState<BlogPostType | null>(null);
-  const [related, setRelated] = useState<BlogPostType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [safeHtml, setSafeHtml] = useState("");
+  const localFallback = initialBlogs.find((b) => b.slug === slug) || null;
+  const [blog, setBlog] = useState<BlogPostType | null>(localFallback);
+  const [related, setRelated] = useState<BlogPostType[]>(
+    initialBlogs.filter((b) => b.slug !== slug && !b.isHidden).slice(0, 3)
+  );
+  const [loading, setLoading] = useState(!localFallback);
+  const [safeHtml, setSafeHtml] = useState(localFallback?.content || "");
 
   useEffect(() => {
     // Dynamically import DOMPurify on the client
     import("dompurify").then((mod) => {
       DOMPurify = mod.default;
+      if (blog?.content) {
+        setSafeHtml(mod.default.sanitize(blog.content, { ADD_ATTR: ["target", "loading"] }));
+      }
     });
-  }, []);
+  }, [blog]);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -37,28 +43,30 @@ export default function BlogPostClient({ slug }: Props) {
           const blogData = await res.json();
           if (blogData && blogData.slug) {
             setBlog(blogData);
+          } else if (localFallback) {
+            setBlog(localFallback);
           }
+        } else if (localFallback) {
+          setBlog(localFallback);
         }
 
         const allRes = await fetch("/api/blogs");
         if (allRes.ok) {
           const allData = await allRes.json();
-          if (Array.isArray(allData)) {
+          if (Array.isArray(allData) && allData.length > 0) {
             const rel = allData.filter((b: BlogPostType) => b.slug !== slug && !b.isHidden).slice(0, 3);
             setRelated(rel);
           }
         }
       } catch (error) {
         console.error("Error fetching blog, using local fallback:", error);
-        const localBlog = initialBlogs.find((b) => b.slug === slug) || null;
-        setBlog(localBlog);
-        setRelated(initialBlogs.filter((b) => b.slug !== slug && !b.isHidden).slice(0, 3));
+        if (localFallback) setBlog(localFallback);
       } finally {
         setLoading(false);
       }
     };
     if (slug) fetchBlog();
-  }, [slug]);
+  }, [slug, localFallback]);
 
   // Sanitize HTML once DOMPurify is loaded and blog content is available
   useEffect(() => {

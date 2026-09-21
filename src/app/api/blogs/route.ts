@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db/client";
+import { blogs as initialBlogs } from "@/lib/data/blogs";
 
 // ── GET /api/blogs ─────────────────────────────────────────────────────────────
 export async function GET() {
@@ -14,10 +15,13 @@ export async function GET() {
       FROM blogs
       ORDER BY updated_at DESC
     `);
-    return NextResponse.json(rows);
+    if (rows && rows.length > 0) {
+      return NextResponse.json(rows);
+    }
+    return NextResponse.json(initialBlogs);
   } catch (err: any) {
-    console.error("[GET /api/blogs]", err);
-    return NextResponse.json({ error: "Failed to fetch blogs" }, { status: 500 });
+    console.error("[GET /api/blogs] DB fallback triggered:", err?.message || err);
+    return NextResponse.json(initialBlogs);
   }
 }
 
