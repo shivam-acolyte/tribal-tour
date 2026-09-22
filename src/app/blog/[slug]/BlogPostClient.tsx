@@ -26,19 +26,34 @@ export default function BlogPostClient({ slug }: Props) {
   const [safeHtml, setSafeHtml] = useState(localFallback?.content || "");
 
   useEffect(() => {
-    // Dynamically import DOMPurify on the client
-    import("dompurify").then((mod) => {
-      DOMPurify = mod.default;
-      if (blog?.content) {
-        setSafeHtml(
-          mod.default.sanitize(blog.content, {
-            ADD_TAGS: ["table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col"],
-            ADD_ATTR: ["target", "loading", "style", "class", "colspan", "rowspan", "border", "cellpadding", "cellspacing"],
-          })
-        );
-      }
-    });
-  }, [blog]);
+    if (!blog?.content) {
+      setSafeHtml("");
+      return;
+    }
+
+    const sanitizeConfig = {
+      ADD_TAGS: [
+        "table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col",
+        "style", "iframe", "div", "span", "section", "article", "figure", "figcaption",
+        "svg", "path", "button"
+      ],
+      ADD_ATTR: [
+        "target", "loading", "style", "class", "id", "colspan", "rowspan", "border",
+        "cellpadding", "cellspacing", "width", "height", "align", "valign", "src", "alt",
+        "href", "title", "allow", "allowfullscreen", "frameborder"
+      ],
+    };
+
+    if (DOMPurify) {
+      setSafeHtml(DOMPurify.sanitize(blog.content, sanitizeConfig));
+    } else {
+      setSafeHtml(blog.content);
+      import("dompurify").then((mod) => {
+        DOMPurify = mod.default;
+        setSafeHtml(mod.default.sanitize(blog.content, sanitizeConfig));
+      });
+    }
+  }, [blog?.content]);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -72,16 +87,6 @@ export default function BlogPostClient({ slug }: Props) {
     };
     if (slug) fetchBlog();
   }, [slug, localFallback]);
-
-  // Sanitize HTML once DOMPurify is loaded and blog content is available
-  useEffect(() => {
-    if (blog?.content && DOMPurify) {
-      setSafeHtml(DOMPurify.sanitize(blog.content, { ADD_ATTR: ["target", "loading"] }));
-    } else if (blog?.content) {
-      // Fallback: set content as-is (will be sanitized once DOMPurify loads)
-      setSafeHtml(blog.content);
-    }
-  }, [blog]);
 
   if (loading) {
     return (

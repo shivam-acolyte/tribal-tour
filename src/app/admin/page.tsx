@@ -8,7 +8,7 @@ import {
   Menu, X, Eye, EyeOff, LayoutDashboard, FileText, MessageCircle,
   Mail, Phone, Calendar, Shield, RefreshCw, ExternalLink, Clock,
   User, Star, MapPin, Sparkles, Check, Globe, Table as TableIcon,
-  Code, Columns, Rows,
+  Code, Columns, Rows, Upload, FileUp, Split, FileCode,
 } from "lucide-react";
 import { Tour, BlogPost, Lead } from "@/lib/types";
 import { tours as localTours } from "@/lib/data/tours";
@@ -1089,9 +1089,54 @@ function BlogsPanel() {
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
-  const [editorMode, setEditorMode] = useState<"visual" | "html">("visual");
+  const [editorMode, setEditorMode] = useState<"visual" | "html" | "split" | "preview">("visual");
   const [showTableModal, setShowTableModal] = useState(false);
   const quillRef = useRef<any>(null);
+  const htmlFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleHtmlFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const rawHtml = event.target?.result as string;
+        if (!rawHtml) return;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtml, "text/html");
+
+        const pageTitle = doc.querySelector("title")?.textContent || doc.querySelector("h1")?.textContent;
+        if (pageTitle && !form.title) {
+          hc("title", pageTitle.trim());
+          if (!form.slug) {
+            hc("slug", pageTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+          }
+        }
+
+        const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute("content");
+        const firstP = doc.querySelector("p")?.textContent;
+        if ((metaDesc || firstP) && !form.excerpt) {
+          hc("excerpt", (metaDesc || firstP || "").slice(0, 200).trim());
+        }
+
+        let extractedContent = "";
+        const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
+        const bodyContent = doc.body ? doc.body.innerHTML : rawHtml;
+
+        extractedContent = styleTags ? `${styleTags}\n${bodyContent}` : bodyContent;
+
+        hc("content", extractedContent.trim());
+        setEditorMode("html");
+        alert(`✅ HTML file "${file.name}" loaded successfully (${(file.size / 1024).toFixed(1)} KB)!`);
+      } catch (err: any) {
+        alert("❌ Failed to parse HTML file: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   // Register Table icon in Quill UI toolbar on client
   useEffect(() => {
@@ -1222,7 +1267,7 @@ function BlogsPanel() {
   </table>
 </div>
 `;
-    } else {
+    } else if (type === "comparison") {
       snippet = `
 <div class="overflow-x-auto my-6">
   <table class="w-full text-sm border-collapse border border-slate-300">
@@ -1244,13 +1289,38 @@ function BlogsPanel() {
         <td class="border border-slate-300 dark:border-slate-700 p-3">Shared Guide</td>
         <td class="border border-slate-300 dark:border-slate-700 p-3">Dedicated Tribal Storyteller / Expert</td>
       </tr>
-      <tr>
-        <td class="border border-slate-300 dark:border-slate-700 p-3 font-medium">Permits (ILP/PAP)</td>
-        <td class="border border-slate-300 dark:border-slate-700 p-3">Standard Processing</td>
-        <td class="border border-slate-300 dark:border-slate-700 p-3">Fast-Track VIP Assistance Included</td>
-      </tr>
     </tbody>
   </table>
+</div>
+`;
+    } else if ((type as string) === "callout") {
+      snippet = `
+<div class="my-6 p-4 rounded-xl border-l-4 border-amber-500 bg-amber-500/10 text-foreground">
+  <h4 class="font-bold text-amber-600 dark:text-amber-400 mb-1">💡 Travel Tip</h4>
+  <p class="text-sm leading-relaxed">
+    Make sure to carry your Inner Line Permit (ILP) printouts and passport-sized photographs before entering protected tribal areas.
+  </p>
+</div>
+`;
+    } else if ((type as string) === "grid") {
+      snippet = `
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+  <div class="p-4 rounded-xl border bg-muted/30">
+    <h4 class="font-bold text-base mb-2">🌿 What's Included</h4>
+    <ul class="text-sm space-y-1 list-disc list-inside">
+      <li>All tribal village entry permits</li>
+      <li>Local cultural storyteller</li>
+      <li>Traditional homestay meals</li>
+    </ul>
+  </div>
+  <div class="p-4 rounded-xl border bg-muted/30">
+    <h4 class="font-bold text-base mb-2">🎒 What to Bring</h4>
+    <ul class="text-sm space-y-1 list-disc list-inside">
+      <li>Sturdy walking shoes</li>
+      <li>Modest clothing for village visits</li>
+      <li>Camera with extra memory</li>
+    </ul>
+  </div>
 </div>
 `;
     }
@@ -1503,11 +1573,34 @@ function BlogsPanel() {
             </section>
 
             <section className="bg-card border rounded-2xl p-5 space-y-4">
-              <h3 className="font-heading font-bold border-b pb-2">Content</h3>
-              <Field label="Excerpt (Short Summary)"><textarea className={`${textareaCls} h-16`} value={form.excerpt} onChange={e => hc("excerpt", e.target.value)} /></Field>
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <Label>Full Content (Rich HTML & Tables)</Label>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h3 className="font-heading font-bold text-lg">Blog Content</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Upload raw HTML, write in Rich Text, or compose custom tables & layouts.
+                  </p>
+                </div>
+
+                {/* Hidden HTML file input */}
+                <input
+                  type="file"
+                  ref={htmlFileInputRef}
+                  accept=".html,.htm,.txt"
+                  className="hidden"
+                  onChange={handleHtmlFileUpload}
+                />
+
+                {/* Top Action Bar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => htmlFileInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition"
+                    title="Upload an .html file directly from your computer"
+                  >
+                    <FileUp size={14} /> Upload .html File
+                  </button>
+
                   <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs">
                     <button
                       type="button"
@@ -1517,6 +1610,7 @@ function BlogsPanel() {
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
+                      title="Rich Visual WYSIWYG Editor"
                     >
                       <Eye size={13} /> Visual Editor
                     </button>
@@ -1528,13 +1622,50 @@ function BlogsPanel() {
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
+                      title="Add or Edit Raw HTML Directly"
                     >
-                      <Code size={13} /> HTML Source
+                      <Code size={13} /> Add / Edit HTML
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode("split")}
+                      className={`px-3 py-1 rounded-md transition flex items-center gap-1.5 font-medium ${
+                        editorMode === "split"
+                          ? "bg-background text-foreground shadow-xs font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Split View: Code + Live Rendering"
+                    >
+                      <Split size={13} /> Split Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode("preview")}
+                      className={`px-3 py-1 rounded-md transition flex items-center gap-1.5 font-medium ${
+                        editorMode === "preview"
+                          ? "bg-background text-foreground shadow-xs font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="Full Live Preview of Rendered Blog"
+                    >
+                      <ExternalLink size={13} /> Live Preview
                     </button>
                   </div>
                 </div>
+              </div>
 
-                {editorMode === "visual" ? (
+              <Field label="Excerpt (Short Summary)">
+                <textarea
+                  className={`${textareaCls} h-16`}
+                  value={form.excerpt}
+                  onChange={e => hc("excerpt", e.target.value)}
+                  placeholder="Brief summary of the blog post shown on cards and SEO previews..."
+                />
+              </Field>
+
+              {/* Editor Modes Container */}
+              <div>
+                {editorMode === "visual" && (
                   <div className="border rounded-xl overflow-hidden shadow-xs">
                     {/* Visual Table Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/50 border-b text-xs">
@@ -1599,25 +1730,33 @@ function BlogsPanel() {
                       value={form.content}
                       onChange={(val: string) => hc("content", val)}
                       modules={quillModules}
-                      placeholder="Write your blog content here or use the Table button on toolbar to insert tables..."
+                      placeholder="Write your blog content here or switch to 'Add / Edit HTML' to paste or upload full HTML..."
                       style={{ height: 350 }}
                     />
                   </div>
-                ) : (
+                )}
+
+                {(editorMode === "html" || editorMode === "split") && (
                   <div className="border rounded-xl overflow-hidden shadow-xs">
-                    {/* HTML Table Shortcuts Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/60 border-b text-xs">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground font-semibold">
-                        <Code size={13} className="text-primary" /> Edit raw HTML directly
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
+                    {/* HTML Shortcuts Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/70 border-b text-xs">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => htmlFileInputRef.current?.click()}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition flex items-center gap-1.5 shadow-xs text-xs"
+                        >
+                          <FileUp size={13} /> Upload .html
+                        </button>
                         <button
                           type="button"
                           onClick={() => setShowTableModal(true)}
                           className="px-2.5 py-1 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition flex items-center gap-1.5 shadow-xs"
                         >
-                          <TableIcon size={12} /> + Insert Custom Table
+                          <TableIcon size={12} /> + Custom Table
                         </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => insertHtmlSnippet("itinerary")}
@@ -1632,19 +1771,88 @@ function BlogsPanel() {
                         >
                           + Comparison Table
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHtmlSnippet("callout" as any)}
+                          className="px-2.5 py-1 bg-background hover:bg-muted border rounded-lg font-medium transition text-xs"
+                        >
+                          + Callout Box
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHtmlSnippet("grid" as any)}
+                          className="px-2.5 py-1 bg-background hover:bg-muted border rounded-lg font-medium transition text-xs"
+                        >
+                          + 2-Col Grid
+                        </button>
                       </div>
                     </div>
 
-                    <textarea
-                      className="w-full font-mono text-xs p-4 bg-slate-950 text-slate-100 dark:bg-black focus:outline-none focus:ring-2 focus:ring-primary leading-relaxed resize-y h-[380px]"
-                      value={form.content}
-                      onChange={e => hc("content", e.target.value)}
-                      placeholder="Type or paste your HTML content with <table> tags here..."
+                    {editorMode === "split" ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x border-border">
+                        <div className="flex flex-col">
+                          <div className="bg-slate-900 text-slate-400 px-3 py-1.5 text-[11px] font-mono border-b border-slate-800 flex items-center justify-between">
+                            <span>HTML Source Code</span>
+                            <span>{form.content?.length || 0} chars</span>
+                          </div>
+                          <textarea
+                            className="w-full font-mono text-xs p-4 bg-slate-950 text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed resize-none h-[420px]"
+                            value={form.content}
+                            onChange={e => hc("content", e.target.value)}
+                            placeholder="Type or paste your raw HTML here..."
+                          />
+                        </div>
+                        <div className="flex flex-col bg-background">
+                          <div className="bg-muted px-3 py-1.5 text-[11px] font-mono text-muted-foreground border-b flex items-center justify-between">
+                            <span>Live Rendered Preview</span>
+                            <span className="text-emerald-600 font-semibold">● Real-time</span>
+                          </div>
+                          <div
+                            className="p-4 prose dark:prose-invert max-w-none overflow-y-auto h-[420px] text-xs leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: form.content || "<p class='text-muted-foreground italic'>Type or paste HTML to see live rendering...</p>",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <textarea
+                        className="w-full font-mono text-xs p-4 bg-slate-950 text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary leading-relaxed resize-y h-[420px]"
+                        value={form.content}
+                        onChange={e => hc("content", e.target.value)}
+                        placeholder="Paste or write your HTML content here. Full support for <table>, <style>, <div>, <iframe>, classes, inline CSS, and formatting..."
+                      />
+                    )}
+                  </div>
+                )}
+
+                {editorMode === "preview" && (
+                  <div className="border rounded-xl overflow-hidden shadow-xs bg-background">
+                    <div className="bg-muted/70 px-4 py-2 border-b flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                        <Eye size={14} className="text-primary" /> Full Page Preview
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditorMode("html")}
+                        className="text-primary hover:underline font-medium text-xs flex items-center gap-1"
+                      >
+                        <Code size={13} /> Back to Edit HTML
+                      </button>
+                    </div>
+                    <div
+                      className="p-6 prose prose-lg dark:prose-invert max-w-none min-h-[380px] overflow-x-auto"
+                      dangerouslySetInnerHTML={{
+                        __html: form.content || "<p class='text-muted-foreground italic'>No content entered yet.</p>",
+                      }}
                     />
                   </div>
                 )}
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-10">
-                  <p>Saved as sanitized HTML with full table support.</p>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground mt-4 px-1">
+                  <p className="flex items-center gap-1.5">
+                    <Check size={14} className="text-emerald-500" /> Full HTML supported: tables, inline styles, custom div layouts, embeds & formatting.
+                  </p>
                   <p className="font-mono">{form.content?.length || 0} characters</p>
                 </div>
               </div>
