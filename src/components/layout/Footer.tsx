@@ -5,6 +5,8 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
 import logo from "@/assets/logo.webp";
+import { BRAND } from "@/lib/seo";
+import { toast } from "sonner";
 
 const quickLinks = ["Home", "About", "Tours", "Destinations", "Blog", "Contact"];
 const destinationLinks = ["North East India", "Meghalaya", "Assam", "Nagaland", "Arunachal Pradesh", "Manipur", "Mizoram"];
@@ -12,6 +14,47 @@ const tourTypeLinks = ["Cultural Tours", "Adventure", "Trekking", "Wildlife", "T
 
 const Footer = () => {
   const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setSubscribing(true);
+
+    const whatsappMessage =
+      `🏷 *Newsletter Subscription*\n\n` +
+      `📧 *Email:* ${email.trim()}\n` +
+      `💬 *Message:* Hi, I would like to subscribe to newsletter updates and travel deals!`;
+
+    const phone = BRAND.phone.replace(/[^0-9]/g, "");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage)}`, "_blank");
+
+    try {
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Newsletter Subscriber",
+          email: email.trim(),
+          phone: "",
+          subject: "Newsletter Subscription",
+          message: `Newsletter subscriber: ${email.trim()}`,
+          source: "Footer Newsletter",
+        }),
+        keepalive: true,
+      });
+      toast.success("Subscribed successfully!");
+      setEmail("");
+    } catch (err) {
+      console.error("Newsletter lead save notice:", err);
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   return (
     <footer className="bg-navy text-navy-foreground">
@@ -94,22 +137,25 @@ const Footer = () => {
           <div className="lg:col-span-2 min-w-0">
             <h4 className="font-heading font-bold text-base mb-4 text-navy-foreground tracking-wide">Newsletter</h4>
             <p className="text-sm opacity-75 mb-3 leading-relaxed">Subscribe for travel deals &amp; tips</p>
-            <div className="flex flex-col gap-2.5">
+            <form onSubmit={handleSubscribe} className="flex flex-col gap-2.5">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email address"
                 aria-label="Your email address for newsletter"
+                required
                 className="w-full px-3.5 py-2.5 rounded-lg bg-navy-foreground/10 border border-navy-foreground/20 text-sm text-navy-foreground placeholder:text-navy-foreground/40 focus:outline-none focus:border-primary"
               />
               <button
+                type="submit"
+                disabled={subscribing}
                 aria-label="Subscribe to newsletter"
-                className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                Subscribe
+                {subscribing ? "Subscribing..." : "Subscribe"}
               </button>
-            </div>
+            </form>
             <p className="text-xs opacity-50 mt-2.5">We respect your privacy.</p>
           </div>
         </div>

@@ -176,3 +176,56 @@
 .quill .ql-editor {
   min-height: 250px;
 }
+
+/* Table styling for Rich Text Editor, Blog Posts & Previews */
+.ql-editor table,
+.prose table,
+.blog-content table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+  font-size: 0.925rem;
+}
+
+.ql-editor table th,
+.ql-editor table td,
+.prose table th,
+.prose table td,
+.blog-content table th,
+.blog-content table td {
+  border: 1px solid hsl(var(--border)) !important;
+  padding: 0.65rem 0.85rem !important;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ql-editor table th,
+.prose table th,
+.blog-content table th {
+  background-color: hsl(var(--muted)) !important;
+  font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.ql-editor table tr:nth-child(even) td,
+.prose table tr:nth-child(even) td,
+.blog-content table tr:nth-child(even) td {
+  background-color: hsl(var(--muted) / 0.35);
+}
+
+.ql-editor table tr:hover td {
+  background-color: hsl(var(--muted) / 0.6);
+}
+
+/* Quill Table Button Styling */
+.ql-snow .ql-table svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+.ql-snow .ql-table .ql-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}

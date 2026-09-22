@@ -40,7 +40,7 @@ const PopularTrips = () => {
               .filter((tour) => !tour.isHidden)
               .slice(0, 6)
               .map((tour, i) => (
-              <TourCard key={tour.slug} tour={tour} index={i} />
+              <TourCard key={`${tour.slug}-${i}`} tour={tour} index={i} />
             ))}
           </div>
         )}

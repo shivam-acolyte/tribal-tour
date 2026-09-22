@@ -27,7 +27,7 @@ const CTABanner = () => (
           Explore All Packages
         </Link>
         <a
-          href="tel:+919928559575"
+          href="tel:+919436045075"
           className="flex items-center gap-2 px-8 py-3 border-2 border-orange-foreground text-orange-foreground font-medium rounded-xl hover:bg-orange-foreground/10 transition-colors"
         >
           <Phone className="h-4 w-4" /> Call Us Now

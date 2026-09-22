@@ -169,8 +169,8 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
 
         {/* Right side */}
         <div className="hidden lg:flex items-center gap-3">
-          <a href="tel:+918135955584" className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Phone className="h-4 w-4" /> +91 8135955584
+          <a href="tel:+919436045075" className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Phone className="h-4 w-4" /> +91 94360 45075
           </a>
           <Link href="/tours" className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
             Book Now

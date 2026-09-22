@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Plus, Trash, Save, LogOut, Copy, Image as ImageIcon, Search,
   Menu, X, Eye, EyeOff, LayoutDashboard, FileText, MessageCircle,
   Mail, Phone, Calendar, Shield, RefreshCw, ExternalLink, Clock,
-  User, Star, MapPin, Sparkles, Check, Globe,
+  User, Star, MapPin, Sparkles, Check, Globe, Table as TableIcon,
+  Code, Columns, Rows,
 } from "lucide-react";
 import { Tour, BlogPost, Lead } from "@/lib/types";
 import { tours as localTours } from "@/lib/data/tours";
@@ -49,11 +50,14 @@ const quillModules = {
 function getToken() {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem("admin_auth_token");
+    // Clear any residual persistent localStorage tokens
+    localStorage.removeItem("admin_auth_token");
+
+    const raw = sessionStorage.getItem("admin_auth_token");
     if (!raw) return null;
     const token = JSON.parse(raw);
     if (Date.now() < token.expiry) return token;
-    localStorage.removeItem("admin_auth_token");
+    sessionStorage.removeItem("admin_auth_token");
   } catch {}
   return null;
 }
@@ -102,10 +106,11 @@ function LoginScreen({ onLogin }: { onLogin: (user: string) => void }) {
         setError(data.error || "Login failed");
         return;
       }
-      localStorage.setItem("admin_auth_token", JSON.stringify({
+      sessionStorage.setItem("admin_auth_token", JSON.stringify({
         expiry: Date.now() + 60 * 60 * 1000,
         username: data.username,
       }));
+      try { localStorage.removeItem("admin_auth_token"); } catch {}
       onLogin(data.username);
     } catch {
       setError("Network error. Is your DATABASE_URL set in .env.local?");
@@ -132,7 +137,6 @@ function LoginScreen({ onLogin }: { onLogin: (user: string) => void }) {
             {loading && <span className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />}
             {loading ? "Signing in..." : "Sign In"}
           </button>
-          <p className="text-center text-xs text-muted-foreground">Default: admin / tribal2024</p>
         </form>
       </div>
     </div>
@@ -237,6 +241,144 @@ function ImageLightboxModal({
             className="px-3.5 py-1.5 bg-primary text-primary-foreground font-medium rounded-lg hover:opacity-90 transition text-xs shadow-xs"
           >
             Close Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Table Insert Modal ───────────────────────────────────────────────────────
+
+function TableInsertModal({
+  isOpen,
+  onClose,
+  onInsert,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onInsert: (rows: number, cols: number, hasHeader: boolean) => void;
+}) {
+  const [rows, setRows] = useState(3);
+  const [cols, setCols] = useState(3);
+  const [hasHeader, setHasHeader] = useState(true);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card border border-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b flex items-center justify-between bg-muted/40">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 bg-primary/10 text-primary rounded-lg">
+              <TableIcon size={16} />
+            </span>
+            <div>
+              <h3 className="font-heading font-bold text-sm">Insert Table</h3>
+              <p className="text-[11px] text-muted-foreground">Add a structured table to your content</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Rows
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={25}
+                value={rows}
+                onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full p-2.5 border rounded-xl bg-background text-sm focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Columns
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={cols}
+                onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full p-2.5 border rounded-xl bg-background text-sm focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer pt-1 select-none">
+            <input
+              type="checkbox"
+              checked={hasHeader}
+              onChange={(e) => setHasHeader(e.target.checked)}
+              className="w-4 h-4 accent-primary rounded"
+            />
+            <span className="text-xs text-foreground font-medium">
+              Include Header Row (styled title cells)
+            </span>
+          </label>
+
+          {/* Quick Matrix Preview */}
+          <div className="p-3 bg-muted/40 rounded-xl border">
+            <div className="flex items-center justify-between mb-1.5 text-[10px] uppercase font-bold text-muted-foreground">
+              <span>Grid Preview</span>
+              <span>{rows} rows × {cols} cols</span>
+            </div>
+            <div
+              className="grid gap-1 max-w-[200px]"
+              style={{ gridTemplateColumns: `repeat(${Math.min(cols, 6)}, minmax(0, 1fr))` }}
+            >
+              {Array.from({ length: Math.min(rows, 4) }).map((_, r) =>
+                Array.from({ length: Math.min(cols, 6) }).map((_, c) => (
+                  <div
+                    key={`${r}-${c}`}
+                    className={`h-3 rounded-xs border ${
+                      r === 0 && hasHeader
+                        ? "bg-primary/30 border-primary/50"
+                        : "bg-background border-border"
+                    }`}
+                  />
+                ))
+              )}
+            </div>
+            {rows > 4 && <p className="text-[10px] text-muted-foreground mt-1">+{rows - 4} more rows</p>}
+          </div>
+        </div>
+
+        <div className="px-5 py-3 border-t bg-muted/20 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-muted transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onInsert(rows, cols, hasHeader);
+              onClose();
+            }}
+            className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:opacity-90 transition shadow-xs flex items-center gap-1.5"
+          >
+            <TableIcon size={13} /> Insert Table
           </button>
         </div>
       </div>
@@ -940,6 +1082,173 @@ function BlogsPanel() {
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<"visual" | "html">("visual");
+  const [showTableModal, setShowTableModal] = useState(false);
+  const quillRef = useRef<any>(null);
+
+  // Register Table icon in Quill UI toolbar on client
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      import("quill").then((QuillModule) => {
+        const Quill = QuillModule.default || QuillModule;
+        try {
+          const icons = Quill.import("ui/icons") as any;
+          if (icons && !icons["table"]) {
+            icons["table"] = `<svg viewBox="0 0 18 18"><rect class="ql-stroke" height="12" width="14" x="2" y="3"></rect><line class="ql-stroke" x1="2" x2="16" y1="9" y2="9"></line><line class="ql-stroke" x1="7" x2="7" y1="3" y2="15"></line><line class="ql-stroke" x1="12" x2="12" y1="3" y2="15"></line></svg>`;
+          }
+        } catch {}
+      });
+    }
+  }, []);
+
+  const quillModules = useMemo(
+    () => ({
+      table: true,
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["blockquote", "code-block"],
+          ["link", "image", "table"],
+          [{ align: [] }],
+          ["clean"],
+        ],
+        handlers: {
+          table: function () {
+            setShowTableModal(true);
+          },
+        },
+      },
+    }),
+    []
+  );
+
+  const handleInsertTable = (rows: number, cols: number, hasHeader: boolean) => {
+    let tableHtml = `<table class="blog-table" style="width: 100%; border-collapse: collapse; margin: 16px 0;">`;
+    if (hasHeader) {
+      tableHtml += `<thead><tr>`;
+      for (let c = 1; c <= cols; c++) {
+        tableHtml += `<th style="border: 1px solid #cbd5e1; padding: 10px 12px; background-color: #f1f5f9; font-weight: 600; text-align: left;">Header ${c}</th>`;
+      }
+      tableHtml += `</tr></thead>`;
+    }
+    tableHtml += `<tbody>`;
+    const bodyRows = hasHeader ? Math.max(1, rows - 1) : rows;
+    for (let r = 1; r <= bodyRows; r++) {
+      tableHtml += `<tr>`;
+      for (let c = 1; c <= cols; c++) {
+        tableHtml += `<td style="border: 1px solid #cbd5e1; padding: 10px 12px;">Row ${r}, Col ${c}</td>`;
+      }
+      tableHtml += `</tr>`;
+    }
+    tableHtml += `</tbody></table><p><br></p>`;
+
+    if (editorMode === "visual") {
+      const editor = quillRef.current?.getEditor();
+      if (editor) {
+        const range = editor.getSelection();
+        const idx = range ? range.index : editor.getLength();
+        editor.clipboard.dangerouslyPasteHTML(idx, tableHtml);
+        setTimeout(() => {
+          hc("content", editor.root.innerHTML);
+        }, 50);
+      } else {
+        hc("content", (form.content || "") + tableHtml);
+      }
+    } else {
+      hc("content", (form.content || "") + "\n" + tableHtml + "\n");
+    }
+  };
+
+  const handleTableTool = (action: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const table = editor.getModule("table");
+    if (!table) return;
+    try {
+      if (action === "insertRowBelow") table.insertRowBelow();
+      else if (action === "insertColRight") table.insertColumnRight();
+      else if (action === "deleteRow") table.deleteRow();
+      else if (action === "deleteCol") table.deleteColumn();
+      else if (action === "deleteTable") table.deleteTable();
+      hc("content", editor.root.innerHTML);
+    } catch (e) {
+      console.warn("Table tool error:", e);
+    }
+  };
+
+  const insertHtmlSnippet = (type: "itinerary" | "comparison") => {
+    let snippet = "";
+    if (type === "itinerary") {
+      snippet = `
+<div class="overflow-x-auto my-6">
+  <table class="w-full text-sm border-collapse border border-slate-300">
+    <thead>
+      <tr class="bg-slate-100 dark:bg-slate-800">
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Day</th>
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Destination</th>
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Activity Highlights</th>
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Stay</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-semibold">Day 1</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Guwahati to Tezpur</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Scenic drive along the Brahmaputra River</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Eco Resort</td>
+      </tr>
+      <tr class="bg-slate-50 dark:bg-slate-900/50">
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-semibold">Day 2</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Tezpur to Dirang</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Visit hot springs and apple orchards</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Heritage Homestay</td>
+      </tr>
+      <tr>
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-semibold">Day 3</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Dirang to Tawang</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Cross Sela Pass (13,700 ft) & Jaswant Garh</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Mountain Lodge</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+    } else {
+      snippet = `
+<div class="overflow-x-auto my-6">
+  <table class="w-full text-sm border-collapse border border-slate-300">
+    <thead>
+      <tr class="bg-slate-100 dark:bg-slate-800">
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Feature</th>
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Standard Package</th>
+        <th class="border border-slate-300 dark:border-slate-700 p-3 text-left font-semibold">Premium Tribal Tour</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-medium">Accommodation</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">3-Star Hotels / Homestays</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">4-Star & Premium Heritage Resorts</td>
+      </tr>
+      <tr class="bg-slate-50 dark:bg-slate-900/50">
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-medium">Local Guide</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Shared Guide</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Dedicated Tribal Storyteller / Expert</td>
+      </tr>
+      <tr>
+        <td class="border border-slate-300 dark:border-slate-700 p-3 font-medium">Permits (ILP/PAP)</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Standard Processing</td>
+        <td class="border border-slate-300 dark:border-slate-700 p-3">Fast-Track VIP Assistance Included</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+    }
+    hc("content", (form.content || "") + "\n" + snippet);
+  };
 
   useEffect(() => {
     fetch("/api/blogs")
@@ -1190,11 +1499,147 @@ function BlogsPanel() {
               <h3 className="font-heading font-bold border-b pb-2">Content</h3>
               <Field label="Excerpt (Short Summary)"><textarea className={`${textareaCls} h-16`} value={form.excerpt} onChange={e => hc("excerpt", e.target.value)} /></Field>
               <div>
-                <Label>Full Content (Rich HTML)</Label>
-                <div className="border rounded-xl overflow-hidden">
-                  <ReactQuill theme="snow" value={form.content} onChange={val => hc("content", val)} modules={quillModules} placeholder="Write your blog content here..." style={{ height: 320 }} />
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <Label>Full Content (Rich HTML & Tables)</Label>
+                  <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode("visual")}
+                      className={`px-3 py-1 rounded-md transition flex items-center gap-1.5 font-medium ${
+                        editorMode === "visual"
+                          ? "bg-background text-foreground shadow-xs font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Eye size={13} /> Visual Editor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode("html")}
+                      className={`px-3 py-1 rounded-md transition flex items-center gap-1.5 font-medium ${
+                        editorMode === "html"
+                          ? "bg-background text-foreground shadow-xs font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Code size={13} /> HTML Source
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-10">Saved as sanitized HTML.</p>
+
+                {editorMode === "visual" ? (
+                  <div className="border rounded-xl overflow-hidden shadow-xs">
+                    {/* Visual Table Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/50 border-b text-xs">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowTableModal(true)}
+                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition flex items-center gap-1.5 shadow-xs"
+                          title="Open table creator modal"
+                        >
+                          <TableIcon size={13} /> + Insert Table
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground mr-1">Table Tools:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleTableTool("insertRowBelow")}
+                          className="px-2 py-0.5 border rounded-md hover:bg-muted transition text-[11px] font-medium"
+                          title="Insert row below selected cell"
+                        >
+                          + Row
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTableTool("insertColRight")}
+                          className="px-2 py-0.5 border rounded-md hover:bg-muted transition text-[11px] font-medium"
+                          title="Insert column to the right of selected cell"
+                        >
+                          + Col
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTableTool("deleteRow")}
+                          className="px-2 py-0.5 border rounded-md hover:bg-destructive/10 hover:text-destructive transition text-[11px] font-medium"
+                          title="Delete row of selected cell"
+                        >
+                          - Row
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTableTool("deleteCol")}
+                          className="px-2 py-0.5 border rounded-md hover:bg-destructive/10 hover:text-destructive transition text-[11px] font-medium"
+                          title="Delete column of selected cell"
+                        >
+                          - Col
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTableTool("deleteTable")}
+                          className="px-2 py-0.5 border rounded-md hover:bg-destructive/10 hover:text-destructive transition text-[11px] font-medium"
+                          title="Delete active table"
+                        >
+                          Delete Table
+                        </button>
+                      </div>
+                    </div>
+
+                    <ReactQuill
+                      ref={quillRef}
+                      theme="snow"
+                      value={form.content}
+                      onChange={val => hc("content", val)}
+                      modules={quillModules}
+                      placeholder="Write your blog content here or use the Table button on toolbar to insert tables..."
+                      style={{ height: 350 }}
+                    />
+                  </div>
+                ) : (
+                  <div className="border rounded-xl overflow-hidden shadow-xs">
+                    {/* HTML Table Shortcuts Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/60 border-b text-xs">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground font-semibold">
+                        <Code size={13} className="text-primary" /> Edit raw HTML directly
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowTableModal(true)}
+                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition flex items-center gap-1.5 shadow-xs"
+                        >
+                          <TableIcon size={12} /> + Insert Custom Table
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHtmlSnippet("itinerary")}
+                          className="px-2.5 py-1 bg-background hover:bg-muted border rounded-lg font-medium transition text-xs"
+                        >
+                          + Itinerary Table
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertHtmlSnippet("comparison")}
+                          className="px-2.5 py-1 bg-background hover:bg-muted border rounded-lg font-medium transition text-xs"
+                        >
+                          + Comparison Table
+                        </button>
+                      </div>
+                    </div>
+
+                    <textarea
+                      className="w-full font-mono text-xs p-4 bg-slate-950 text-slate-100 dark:bg-black focus:outline-none focus:ring-2 focus:ring-primary leading-relaxed resize-y h-[380px]"
+                      value={form.content}
+                      onChange={e => hc("content", e.target.value)}
+                      placeholder="Type or paste your HTML content with <table> tags here..."
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs text-muted-foreground mt-10">
+                  <p>Saved as sanitized HTML with full table support.</p>
+                  <p className="font-mono">{form.content?.length || 0} characters</p>
+                </div>
               </div>
             </section>
 
@@ -1213,6 +1658,11 @@ function BlogsPanel() {
       {previewImgUrl && (
         <ImageLightboxModal imageUrl={previewImgUrl} title={form.title ? `${form.title} - Image` : "Blog Image"} onClose={() => setPreviewImgUrl(null)} />
       )}
+      <TableInsertModal
+        isOpen={showTableModal}
+        onClose={() => setShowTableModal(false)}
+        onInsert={handleInsertTable}
+      />
     </div>
   );
 }
@@ -1516,16 +1966,30 @@ export default function AdminPanel() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    try { localStorage.removeItem("admin_auth_token"); } catch {}
     setMounted(true);
     const token = getToken();
     if (token) { setLoggedIn(true); setLoggedInUser(token.username || "Admin"); }
+
+    return () => {
+      // If user navigates away from /admin, destroy session immediately
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin")) {
+        try {
+          sessionStorage.removeItem("admin_auth_token");
+          localStorage.removeItem("admin_auth_token");
+        } catch {}
+      }
+    };
   }, []);
 
   if (!mounted) return null;
 
   const handleLogin = (user: string) => { setLoggedIn(true); setLoggedInUser(user); };
   const handleLogout = () => {
-    localStorage.removeItem("admin_auth_token");
+    try {
+      sessionStorage.removeItem("admin_auth_token");
+      localStorage.removeItem("admin_auth_token");
+    } catch {}
     setLoggedIn(false);
     router.push("/");
   };

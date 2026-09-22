@@ -10,14 +10,15 @@ export default function AdminLeads() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     if (typeof window === "undefined") return false;
-    const tokenStr = localStorage.getItem("admin_auth_token");
-    if (tokenStr) {
-      try {
+    try {
+      localStorage.removeItem("admin_auth_token");
+      const tokenStr = sessionStorage.getItem("admin_auth_token");
+      if (tokenStr) {
         const token = JSON.parse(tokenStr);
         if (Date.now() < token.expiry) return true;
-        localStorage.removeItem("admin_auth_token");
-      } catch (e) {}
-    }
+        sessionStorage.removeItem("admin_auth_token");
+      }
+    } catch (e) {}
     return false;
   });
 
@@ -25,10 +26,10 @@ export default function AdminLeads() {
   const [password, setPassword] = useState("");
   const [loggedInUser, setLoggedInUser] = useState(() => {
     if (typeof window === "undefined") return "Admin";
-    const tokenStr = localStorage.getItem("admin_auth_token");
-    if (tokenStr) {
-      try { return JSON.parse(tokenStr).username || "Admin"; } catch (e) {}
-    }
+    try {
+      const tokenStr = sessionStorage.getItem("admin_auth_token");
+      if (tokenStr) return JSON.parse(tokenStr).username || "Admin";
+    } catch (e) {}
     return "Admin";
   });
 
@@ -62,7 +63,8 @@ export default function AdminLeads() {
       if (res.ok && data.success) {
         setIsLoggedIn(true);
         setLoggedInUser(data.username);
-        localStorage.setItem("admin_auth_token", JSON.stringify({ expiry: Date.now() + 60 * 60 * 1000, username: data.username }));
+        sessionStorage.setItem("admin_auth_token", JSON.stringify({ expiry: Date.now() + 60 * 60 * 1000, username: data.username }));
+        try { localStorage.removeItem("admin_auth_token"); } catch {}
       } else {
         alert(data.error || "Invalid credentials.");
       }
@@ -74,7 +76,10 @@ export default function AdminLeads() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    localStorage.removeItem("admin_auth_token");
+    try {
+      sessionStorage.removeItem("admin_auth_token");
+      localStorage.removeItem("admin_auth_token");
+    } catch {}
     router.push("/");
   };
 
