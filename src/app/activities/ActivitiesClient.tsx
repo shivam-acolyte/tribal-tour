@@ -150,7 +150,7 @@ export default function ActivitiesClient() {
               <AnimatePresence>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filtered.map((tour, i) => (
-                    <TourCard key={tour.slug} tour={tour} index={i} />
+                    <TourCard key={`${tour.slug}-${i}`} tour={tour} index={i} />
                   ))}
                 </div>
               </AnimatePresence>

@@ -78,7 +78,7 @@ const TopActivities = () => {
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               >
                 {display.map((tour, i) => (
-                  <TourCard key={tour.slug} tour={tour} index={i} />
+                  <TourCard key={`${tour.slug}-${i}`} tour={tour} index={i} />
                 ))}
               </motion.div>
             </AnimatePresence>

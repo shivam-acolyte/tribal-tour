@@ -256,9 +256,9 @@ export default function ToursClient() {
                         </p>
                         {matchingSuggestions.length > 0 ? (
                           <div className="space-y-1">
-                            {matchingSuggestions.slice(0, 6).map((tour) => (
+                            {matchingSuggestions.slice(0, 6).map((tour, idx) => (
                               <div
-                                key={tour.slug}
+                                key={`${tour.slug}-${idx}`}
                                 onClick={() => triggerInstantSearch(tour.name)}
                                 className="flex items-center gap-3 p-2 hover:bg-muted/70 rounded-lg cursor-pointer transition-colors group"
                               >
@@ -309,7 +309,7 @@ export default function ToursClient() {
                 {sorted.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {sorted.map((tour, i) => (
-                      <TourCard key={tour.slug} tour={tour} index={i} />
+                      <TourCard key={`${tour.slug}-${i}`} tour={tour} index={i} />
                     ))}
                   </div>
                 ) : (

@@ -11,7 +11,7 @@ export const BRAND = {
   url: "https://tribaldiscoverytour.com",
   image: "https://tribaldiscoverytour.com/og-image.jpg", // Update with your actual image URL
   email: "info@tribaldiscoverytour.com",
-  phone: "+919928559575",
+  phone: "+919436045075",
   address: {
     streetAddress: "Jaipur",
     addressLocality: "Jaipur",

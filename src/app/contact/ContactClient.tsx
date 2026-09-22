@@ -18,20 +18,38 @@ export default function ContactClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const whatsappMessage =
+      `🏷 *New Contact Enquiry*\n\n` +
+      `👤 *Name:* ${form.name.trim()}\n` +
+      `📞 *Phone:* ${form.phone.trim()}\n` +
+      `📧 *Email:* ${form.email.trim()}\n` +
+      `📝 *Subject:* ${form.subject.trim() || "General Inquiry"}\n` +
+      `💬 *Message:* ${form.message.trim()}`;
+
+    const phone = BRAND.phone.replace(/[^0-9]/g, "");
+    // Open WhatsApp immediately upon user click to avoid popup blocker
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage)}`, "_blank");
+
     try {
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          subject: form.subject.trim() || "Contact Form Inquiry",
+          message: form.message.trim(),
+          source: "Contact Us Page",
+        }),
+        keepalive: true,
       });
 
       if (!res.ok) {
         throw new Error("Failed to submit lead");
       }
 
-      const whatsappMessage = `Hi! My name is ${form.name}.%0A*Email:* ${form.email}%0A*Phone:* ${form.phone}%0A*Subject:* ${form.subject}%0A*Message:* ${form.message}`;
-      const phone = BRAND.phone.replace(/[^0-9]/g, "");
-      window.open(`https://wa.me/${phone}?text=${whatsappMessage}`, "_blank");
       toast.success("Message sent successfully! We'll get back to you soon.");
       setForm({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (error) {
@@ -112,9 +130,9 @@ export default function ContactClient() {
           title="Contact & Booking FAQ"
           description="Answers to common questions about contacting us and booking tours"
           faqs={[
-            { question: "What are your customer service hours?", answer: "We're available Monday-Sunday, 8:00 AM - 8:00 PM IST. For urgent inquiries, reach out on WhatsApp at +919928559575." },
+            { question: "What are your customer service hours?", answer: "We're available Monday-Sunday, 8:00 AM - 8:00 PM IST. For urgent inquiries, reach out on WhatsApp at +919436045075." },
             { question: "How quickly will you respond to my inquiry?", answer: "We aim to respond to all inquiries within 24 hours. During peak seasons, responses may take up to 48 hours." },
-            { question: "What's the best way to reach you?", answer: "WhatsApp is fastest: +919928559575. Email: contact@tribaldiscoverytour.com. Phone: +919928559575. Contact form on this page." },
+            { question: "What's the best way to reach you?", answer: "WhatsApp is fastest: +919436045075. Email: contact@tribaldiscoverytour.com. Phone: +919436045075. Contact form on this page." },
             { question: "Do you offer group discounts?", answer: "Yes! Groups of 8+ get special discounts. Contact us with your group details for a custom quote." },
             { question: "What is your cancellation policy?", answer: "Cancellations made 30+ days before tour: full refund. 15-29 days: 50% refund. Less than 15 days: no refund unless rescheduled." },
             { question: "Do you accept corporate bookings?", answer: "Absolutely! We offer team-building and corporate retreat packages. Contact us for customized corporate tour options." }

@@ -30,7 +30,12 @@ export default function BlogPostClient({ slug }: Props) {
     import("dompurify").then((mod) => {
       DOMPurify = mod.default;
       if (blog?.content) {
-        setSafeHtml(mod.default.sanitize(blog.content, { ADD_ATTR: ["target", "loading"] }));
+        setSafeHtml(
+          mod.default.sanitize(blog.content, {
+            ADD_TAGS: ["table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col"],
+            ADD_ATTR: ["target", "loading", "style", "class", "colspan", "rowspan", "border", "cellpadding", "cellspacing"],
+          })
+        );
       }
     });
   }, [blog]);
