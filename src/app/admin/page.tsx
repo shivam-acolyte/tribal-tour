@@ -15,7 +15,14 @@ import { tours as localTours } from "@/lib/data/tours";
 import { blogs as localBlogs } from "@/lib/data/blogs";
 import "react-quill-new/dist/quill.snow.css";
 
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+const ReactQuill = dynamic(
+  async () => {
+    const { default: RQ } = await import("react-quill-new");
+    // eslint-disable-next-line react/display-name
+    return React.forwardRef<any, any>((props, ref) => <RQ ref={ref} {...props} />);
+  },
+  { ssr: false }
+) as any;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1590,7 +1597,7 @@ function BlogsPanel() {
                       ref={quillRef}
                       theme="snow"
                       value={form.content}
-                      onChange={val => hc("content", val)}
+                      onChange={(val: string) => hc("content", val)}
                       modules={quillModules}
                       placeholder="Write your blog content here or use the Table button on toolbar to insert tables..."
                       style={{ height: 350 }}
