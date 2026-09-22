@@ -74,8 +74,13 @@ async function apiUpload(file: File, folder: string): Promise<string> {
   fd.append("file", file);
   fd.append("folder", folder);
   const res = await fetch("/api/upload", { method: "POST", body: fd });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Upload failed");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Upload failed (Status ${res.status})`);
+  }
+  if (!data.url) {
+    throw new Error("Server succeeded but returned no image URL.");
+  }
   return data.url as string;
 }
 
@@ -762,8 +767,17 @@ function ToursPanel() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading("image");
-    try { hc("image", await apiUpload(file, "tours")); alert("✅ Image uploaded!"); }
-    catch { alert("❌ Upload failed."); } finally { setUploading(null); }
+    try {
+      const url = await apiUpload(file, "tours");
+      hc("image", url);
+      alert("✅ Image uploaded!");
+    } catch (err: any) {
+      console.error("Image upload error:", err);
+      alert("❌ Upload failed: " + (err?.message || "Please try again."));
+    } finally {
+      setUploading(null);
+      e.target.value = "";
+    }
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -773,8 +787,14 @@ function ToursPanel() {
       const urls: string[] = [];
       for (const f of Array.from(files)) urls.push(await apiUpload(f, "tours"));
       hc("images", [...(form.images || []), ...urls]);
-      alert("✅ Gallery uploaded!");
-    } catch { alert("❌ Upload failed."); } finally { setUploading(null); }
+      alert(`✅ ${urls.length} gallery image(s) uploaded!`);
+    } catch (err: any) {
+      console.error("Gallery upload error:", err);
+      alert("❌ Gallery upload failed: " + (err?.message || "Please try again."));
+    } finally {
+      setUploading(null);
+      e.target.value = "";
+    }
   };
 
   const filtered = tours.filter(t =>
@@ -1391,8 +1411,39 @@ function BlogsPanel() {
   const handleImgUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "image" | "authorImage") => {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(field);
-    try { hc(field, await apiUpload(file, "blogs")); alert("✅ Image uploaded!"); }
-    catch { alert("❌ Upload failed."); } finally { setUploading(null); }
+    try {
+      const url = await apiUpload(file, "blogs");
+      hc(field, url);
+      alert(`✅ ${field === "authorImage" ? "Author avatar" : "Cover image"} uploaded!`);
+    } catch (err: any) {
+      console.error("Blog image upload error:", err);
+      alert("❌ Upload failed: " + (err?.message || "Please try again."));
+    } finally {
+      setUploading(null);
+      e.target.value = "";
+    }
+  };
+
+  const contentImgInputRef = useRef<HTMLInputElement>(null);
+  const [insertingImg, setInsertingImg] = useState(false);
+
+  const handleInsertBlogImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setInsertingImg(true);
+    try {
+      const url = await apiUpload(file, "blogs");
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      const imgHtml = `\n<figure style="margin: 24px 0; text-align: center;">\n  <img src="${url}" alt="${cleanTitle}" style="width: 100%; max-height: 480px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);" />\n  <figcaption style="font-size: 12px; color: #6b7280; margin-top: 8px;">${cleanTitle}</figcaption>\n</figure>\n`;
+      hc("content", (form.content || "") + imgHtml);
+      alert("✅ Image uploaded and added into blog content!");
+    } catch (err: any) {
+      console.error("Content image upload error:", err);
+      alert("❌ Image upload failed: " + (err?.message || "Please try again."));
+    } finally {
+      setInsertingImg(false);
+      e.target.value = "";
+    }
   };
 
   const filtered = blogs.filter(b => (b.title || "").toLowerCase().includes(search.toLowerCase()));
@@ -1590,6 +1641,16 @@ function BlogsPanel() {
                   onChange={handleHtmlFileUpload}
                 />
 
+                {/* Hidden Content Image input */}
+                <input
+                  type="file"
+                  ref={contentImgInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleInsertBlogImage}
+                  disabled={insertingImg}
+                />
+
                 {/* Top Action Bar */}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -1599,6 +1660,21 @@ function BlogsPanel() {
                     title="Upload an .html file directly from your computer"
                   >
                     <FileUp size={14} /> Upload .html File
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => contentImgInputRef.current?.click()}
+                    disabled={insertingImg}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition disabled:opacity-50"
+                    title="Upload an image from your computer and embed it in this blog post"
+                  >
+                    {insertingImg ? (
+                      <span className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                    ) : (
+                      <ImageIcon size={14} />
+                    )}
+                    <span>{insertingImg ? "Uploading Image..." : "+ Insert Image"}</span>
                   </button>
 
                   <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs">
@@ -2044,15 +2120,32 @@ function MediaPanel() {
     if (!files?.length) return;
     setUploading(true);
     try {
+      let count = 0;
       for (const file of Array.from(files)) {
         await apiUpload(file, selectedFolder === "all" ? "misc" : selectedFolder);
+        count++;
       }
       fetchImages();
-      alert("✅ Images uploaded successfully to server!");
-    } catch {
-      alert("❌ Upload failed.");
+      alert(`✅ ${count} image(s) uploaded successfully!`);
+    } catch (err: any) {
+      console.error("Media upload error:", err);
+      alert("❌ Upload failed: " + (err?.message || "Please try again."));
     } finally {
       setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteImage = async (id: number, url: string) => {
+    if (!confirm("Are you sure you want to permanently delete this image?")) return;
+    try {
+      const res = await fetch(`/api/upload?id=${id}&url=${encodeURIComponent(url)}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Delete failed");
+      setImages(prev => prev.filter(img => img.id !== id));
+      alert("Image deleted.");
+    } catch (err: any) {
+      alert("❌ Failed to delete image: " + (err?.message || "Unknown error"));
     }
   };
 
@@ -2153,6 +2246,14 @@ function MediaPanel() {
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition ${copiedUrl === img.url ? "bg-green-600 text-white" : "bg-muted text-foreground hover:bg-muted/80"}`}
                     >
                       {copiedUrl === img.url ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy URL</>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(img.id, img.url)}
+                      className="p-1.5 rounded-lg border bg-background hover:bg-destructive/10 text-muted-foreground hover:text-destructive text-xs transition"
+                      title="Delete Image"
+                    >
+                      <Trash size={13} />
                     </button>
                   </div>
                 </div>
