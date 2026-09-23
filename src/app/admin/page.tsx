@@ -509,8 +509,8 @@ function BlogPreviewModal({ blog, onClose }: { blog: BlogPost; onClose: () => vo
 
               {/* Rich Content HTML */}
               <div
-                className="prose prose-neutral dark:prose-invert max-w-none text-sm md:text-base leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: blog.content || "<p class='text-muted-foreground italic'>No content written yet...</p>" }}
+                className="blog-content prose prose-neutral dark:prose-invert max-w-none text-sm md:text-base leading-relaxed break-words [overflow-wrap:anywhere]"
+                dangerouslySetInnerHTML={{ __html: (blog.content || "<p class='text-muted-foreground italic'>No content written yet...</p>").replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }}
               />
 
               {/* Author Bio Box */}
@@ -1358,19 +1358,33 @@ function BlogsPanel() {
   const handleSelect = (i: number) => { setSelected(i); setForm({ ...blogs[i] }); };
   const handleAddNew = () => { setSelected(null); setForm({ ...emptyBlog }); };
 
-  const handleSave = async () => {
+  const handleSave = async (asDraft = false) => {
     if (!form.title || !form.slug) return alert("Title and Slug are required!");
+    const toSave: BlogPost = {
+      ...form,
+      isHidden: asDraft,
+    };
     try {
       const res = await fetch("/api/blogs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(toSave),
       });
       if (!res.ok) throw new Error((await res.json()).error);
+      setForm(toSave);
       const updated = [...blogs];
-      if (selected !== null) { updated[selected] = form; } else { updated.push(form); setSelected(updated.length - 1); }
+      if (selected !== null) {
+        updated[selected] = toSave;
+      } else {
+        updated.push(toSave);
+        setSelected(updated.length - 1);
+      }
       setBlogs(updated);
-      alert("✅ Blog saved!");
+      if (asDraft) {
+        alert("📝 Blog saved as draft (not published)!");
+      } else {
+        alert("✅ Blog published successfully to website!");
+      }
     } catch (e: any) { alert("❌ " + e.message); }
   };
 
@@ -1491,8 +1505,22 @@ function BlogsPanel() {
               <Eye size={14} /> Preview Blog
             </button>
             <button onClick={handleMigrate} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition"><Save size={14} /> Migrate Local Data</button>
-            <button onClick={handleExport} className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition"><Copy size={14} /> Export Code</button>
-            <button onClick={handleSave} className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition"><Save size={14} /> Save</button>
+            <button
+              type="button"
+              onClick={() => handleSave(true)}
+              className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-800 transition shadow-sm"
+              title="Save blog as draft (not published on website)"
+            >
+              <FileText size={14} /> Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSave(false)}
+              className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition shadow-sm"
+              title="Publish blog to website"
+            >
+              <Globe size={14} /> Publish
+            </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
@@ -1884,9 +1912,9 @@ function BlogsPanel() {
                             <span className="text-emerald-600 font-semibold">● Real-time</span>
                           </div>
                           <div
-                            className="p-4 prose dark:prose-invert max-w-none overflow-y-auto h-[420px] text-xs leading-relaxed"
+                            className="blog-content p-4 prose dark:prose-invert max-w-none overflow-y-auto h-[420px] text-xs leading-relaxed break-words [overflow-wrap:anywhere]"
                             dangerouslySetInnerHTML={{
-                              __html: form.content || "<p class='text-muted-foreground italic'>Type or paste HTML to see live rendering...</p>",
+                              __html: (form.content || "<p class='text-muted-foreground italic'>Type or paste HTML to see live rendering...</p>").replace(/&nbsp;/g, " ").replace(/\u00A0/g, " "),
                             }}
                           />
                         </div>
@@ -1917,9 +1945,9 @@ function BlogsPanel() {
                       </button>
                     </div>
                     <div
-                      className="p-6 prose prose-lg dark:prose-invert max-w-none min-h-[380px] overflow-x-auto"
+                      className="blog-content p-6 prose prose-lg dark:prose-invert max-w-none min-h-[380px] overflow-x-auto break-words [overflow-wrap:anywhere]"
                       dangerouslySetInnerHTML={{
-                        __html: form.content || "<p class='text-muted-foreground italic'>No content entered yet.</p>",
+                        __html: (form.content || "<p class='text-muted-foreground italic'>No content entered yet.</p>").replace(/&nbsp;/g, " ").replace(/\u00A0/g, " "),
                       }}
                     />
                   </div>

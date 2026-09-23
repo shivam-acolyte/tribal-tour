@@ -44,13 +44,17 @@ export default function BlogPostClient({ slug }: Props) {
       ],
     };
 
+    const rawContent = (blog.content || "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\u00A0/g, " ");
+
     if (DOMPurify) {
-      setSafeHtml(DOMPurify.sanitize(blog.content, sanitizeConfig));
+      setSafeHtml(DOMPurify.sanitize(rawContent, sanitizeConfig));
     } else {
-      setSafeHtml(blog.content);
+      setSafeHtml(rawContent);
       import("dompurify").then((mod) => {
         DOMPurify = mod.default;
-        setSafeHtml(mod.default.sanitize(blog.content, sanitizeConfig));
+        setSafeHtml(mod.default.sanitize(rawContent, sanitizeConfig));
       });
     }
   }, [blog?.content]);
@@ -160,7 +164,7 @@ export default function BlogPostClient({ slug }: Props) {
                 </p>
               )}
               <div
-                className="prose prose-lg dark:prose-invert max-w-none text-foreground/80 leading-relaxed prose-headings:font-heading prose-headings:font-bold prose-headings:text-foreground prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:text-primary prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-li:my-1 prose-strong:text-foreground"
+                className="blog-content prose prose-lg dark:prose-invert max-w-none text-foreground/80 leading-relaxed prose-headings:font-heading prose-headings:font-bold prose-headings:text-foreground prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:text-primary prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-li:my-1 prose-strong:text-foreground break-words [overflow-wrap:anywhere]"
                 dangerouslySetInnerHTML={{ __html: safeHtml }}
               />
             </div>
