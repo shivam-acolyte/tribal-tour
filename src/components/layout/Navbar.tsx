@@ -197,7 +197,15 @@ const Navbar = forwardRef<HTMLElement>((_, ref) => {
             transition={{ type: "tween", duration: 0.3 }}
             className="fixed inset-0 top-16 bg-background z-40 p-6 overflow-y-auto lg:hidden"
           >
-            <div className="space-y-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+              className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="space-y-4 mt-2">
               <Link href="/destinations" className="block text-lg font-heading font-semibold py-2 border-b">Destinations</Link>
               <Link href="/tours" className="block text-lg font-heading font-semibold py-2 border-b">Tours</Link>
               <Link href="/activities" className="block text-lg font-heading font-semibold py-2 border-b">Activities</Link>

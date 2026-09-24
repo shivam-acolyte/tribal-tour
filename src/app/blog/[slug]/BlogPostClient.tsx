@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
@@ -11,6 +11,17 @@ import { blogs as initialBlogs } from "@/lib/data/blogs";
 
 // DOMPurify is browser-only; lazy import to avoid SSR issues
 let DOMPurify: typeof import("dompurify").default | null = null;
+
+function wrapTablesInHtml(html: string): string {
+  if (!html || !html.includes("<table")) return html;
+  return html.replace(
+    /(?:<div class="[^"]*table-responsive-wrapper[^"]*">[\s\S]*?<\/div>)|(<table[\s\S]*?<\/table>)/gi,
+    (match, tableGroup) => {
+      if (!tableGroup) return match;
+      return `<div class="table-responsive-wrapper"><div class="table-scroll-hint"><span class="hint-text">⇄ Swipe to explore full table</span></div><div class="table-scroll-container">${tableGroup}</div></div>`;
+    }
+  );
+}
 
 interface Props {
   slug: string;
@@ -23,7 +34,8 @@ export default function BlogPostClient({ slug }: Props) {
     initialBlogs.filter((b) => b.slug !== slug && !b.isHidden).slice(0, 3)
   );
   const [loading, setLoading] = useState(!localFallback);
-  const [safeHtml, setSafeHtml] = useState(localFallback?.content || "");
+  const [safeHtml, setSafeHtml] = useState(wrapTablesInHtml(localFallback?.content || ""));
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!blog?.content) {
@@ -49,15 +61,35 @@ export default function BlogPostClient({ slug }: Props) {
       .replace(/\u00A0/g, " ");
 
     if (DOMPurify) {
-      setSafeHtml(DOMPurify.sanitize(rawContent, sanitizeConfig));
+      setSafeHtml(wrapTablesInHtml(DOMPurify.sanitize(rawContent, sanitizeConfig)));
     } else {
-      setSafeHtml(rawContent);
+      setSafeHtml(wrapTablesInHtml(rawContent));
       import("dompurify").then((mod) => {
         DOMPurify = mod.default;
-        setSafeHtml(mod.default.sanitize(rawContent, sanitizeConfig));
+        setSafeHtml(wrapTablesInHtml(mod.default.sanitize(rawContent, sanitizeConfig)));
       });
     }
   }, [blog?.content]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const tables = contentRef.current.querySelectorAll("table");
+    tables.forEach((tbl) => {
+      if (!tbl.closest(".table-responsive-wrapper")) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-responsive-wrapper";
+        const hint = document.createElement("div");
+        hint.className = "table-scroll-hint";
+        hint.innerHTML = `<span class="hint-text">⇄ Swipe to explore full table</span>`;
+        const scrollContainer = document.createElement("div");
+        scrollContainer.className = "table-scroll-container";
+        tbl.parentNode?.insertBefore(wrapper, tbl);
+        scrollContainer.appendChild(tbl);
+        wrapper.appendChild(hint);
+        wrapper.appendChild(scrollContainer);
+      }
+    });
+  }, [safeHtml]);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -164,6 +196,7 @@ export default function BlogPostClient({ slug }: Props) {
                 </p>
               )}
               <div
+                ref={contentRef}
                 className="blog-content prose prose-lg dark:prose-invert max-w-none text-foreground/80 leading-relaxed prose-headings:font-heading prose-headings:font-bold prose-headings:text-foreground prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:text-primary prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-li:my-1 prose-strong:text-foreground break-words [overflow-wrap:anywhere]"
                 dangerouslySetInnerHTML={{ __html: safeHtml }}
               />

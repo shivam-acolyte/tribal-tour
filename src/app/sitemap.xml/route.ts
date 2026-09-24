@@ -61,17 +61,20 @@ export async function GET() {
     const rows = await query(`
       SELECT slug, name, image, updated_at
       FROM tours
-      WHERE is_hidden IS NOT TRUE
+      WHERE COALESCE(is_hidden, false) = false
       ORDER BY updated_at DESC NULLS LAST
     `);
-    if (rows && rows.length > 0) {
-      toursList = rows;
-    } else {
-      toursList = initialTours.filter((t) => !t.isHidden);
-    }
+    // Use DB rows if any exist; only fall back if DB returned nothing at all
+    toursList = (rows && rows.length > 0) ? rows : initialTours.filter((t) => !t.isHidden);
   } catch (err) {
     console.error("[sitemap.xml] Error querying tours table, falling back to local data:", err);
-    toursList = initialTours.filter((t) => !t.isHidden);
+    // If is_hidden column doesn't exist yet, fetch ALL tours as fallback
+    try {
+      const allRows = await query(`SELECT slug, name, image, updated_at FROM tours ORDER BY updated_at DESC NULLS LAST`);
+      toursList = allRows && allRows.length > 0 ? allRows : initialTours.filter((t) => !t.isHidden);
+    } catch {
+      toursList = initialTours.filter((t) => !t.isHidden);
+    }
   }
 
   const toursXml = toursList
@@ -98,17 +101,20 @@ export async function GET() {
     const rows = await query(`
       SELECT slug, title, image, updated_at
       FROM blogs
-      WHERE is_hidden IS NOT TRUE
+      WHERE COALESCE(is_hidden, false) = false
       ORDER BY updated_at DESC NULLS LAST
     `);
-    if (rows && rows.length > 0) {
-      blogsList = rows;
-    } else {
-      blogsList = initialBlogs.filter((b) => !b.isHidden);
-    }
+    // Use DB rows if any exist; only fall back if DB returned nothing at all
+    blogsList = (rows && rows.length > 0) ? rows : initialBlogs.filter((b) => !b.isHidden);
   } catch (err) {
     console.error("[sitemap.xml] Error querying blogs table, falling back to local data:", err);
-    blogsList = initialBlogs.filter((b) => !b.isHidden);
+    // If is_hidden column doesn't exist yet, fetch ALL published blogs as fallback
+    try {
+      const allRows = await query(`SELECT slug, title, image, updated_at FROM blogs ORDER BY updated_at DESC NULLS LAST`);
+      blogsList = allRows && allRows.length > 0 ? allRows : initialBlogs.filter((b) => !b.isHidden);
+    } catch {
+      blogsList = initialBlogs.filter((b) => !b.isHidden);
+    }
   }
 
   const blogsXml = blogsList

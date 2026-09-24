@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const blog = blogs.find((b) => b.slug === slug);
   if (!blog) {
-    return { title: `Blog Not Found | ${BRAND.name}` };
+    return { title: ` ${BRAND.name}` };
   }
   return {
     title: blog.seoTitle || `${blog.title} | ${BRAND.name}`,

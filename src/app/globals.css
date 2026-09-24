@@ -321,44 +321,196 @@
   min-height: 250px;
 }
 
-/* Table styling for Rich Text Editor, Blog Posts & Previews */
+/* ==========================================================================
+   Classy & Clean Responsive Tables (Blog Posts, Previews & Rich Text Editor)
+   ========================================================================== */
+
+.table-responsive-wrapper {
+  margin: 1.75rem 0 !important;
+  border-radius: 0.875rem !important;
+  border: 1px solid hsl(var(--border) / 0.85) !important;
+  background-color: hsl(var(--card)) !important;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Elegant mobile hint so users know the table is swipeable */
+.table-scroll-hint {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  padding: 0.45rem 0.95rem !important;
+  background: hsl(var(--muted) / 0.65) !important;
+  border-bottom: 1px solid hsl(var(--border) / 0.6) !important;
+  font-size: 0.725rem !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.025em !important;
+  user-select: none !important;
+}
+
+@media (min-width: 768px) {
+  .table-scroll-hint {
+    display: none !important;
+  }
+}
+
+.table-scroll-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Custom sleek scrollbar for horizontal table scrolling */
+.table-scroll-container::-webkit-scrollbar,
+.blog-content table::-webkit-scrollbar,
+.prose table::-webkit-scrollbar {
+  height: 6px !important;
+}
+
+.table-scroll-container::-webkit-scrollbar-track,
+.blog-content table::-webkit-scrollbar-track,
+.prose table::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3) !important;
+  border-radius: 9999px !important;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb,
+.blog-content table::-webkit-scrollbar-thumb,
+.prose table::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.35) !important;
+  border-radius: 9999px !important;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover,
+.blog-content table::-webkit-scrollbar-thumb:hover,
+.prose table::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6) !important;
+}
+
+/* Table element styling */
 .ql-editor table,
 .prose table,
 .blog-content table {
   width: 100% !important;
-  border-collapse: collapse !important;
-  margin: 1.25rem 0 !important;
-  font-size: 0.925rem;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  margin: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.55 !important;
+  text-align: left !important;
 }
 
+/* On mobile, give columns adequate space so text breathes naturally */
+@media (max-width: 767px) {
+  .table-scroll-container table,
+  .blog-content table,
+  .prose table {
+    min-width: 580px !important;
+  }
+
+  /* Standalone fallback for direct tables */
+  .blog-content > table,
+  .prose > table {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 0.875rem !important;
+    border: 1px solid hsl(var(--border) / 0.85) !important;
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05) !important;
+    margin: 1.75rem 0 !important;
+  }
+}
+
+/* Cell borders and padding */
 .ql-editor table th,
 .ql-editor table td,
 .prose table th,
 .prose table td,
 .blog-content table th,
 .blog-content table td {
-  border: 1px solid hsl(var(--border)) !important;
-  padding: 0.65rem 0.85rem !important;
-  text-align: left;
-  vertical-align: top;
+  border: none !important;
+  border-bottom: 1px solid hsl(var(--border) / 0.55) !important;
+  border-right: 1px solid hsl(var(--border) / 0.35) !important;
+  padding: 0.85rem 1.15rem !important;
+  vertical-align: middle !important;
+  /* CRITICAL: Prevent words from breaking mid-word across random characters */
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none !important;
 }
 
+/* Prevent unwanted paragraph margins inside table cells */
+.blog-content table p,
+.prose table p,
+.ql-editor table p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: inherit !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* Remove right border on the last column */
+.ql-editor table th:last-child,
+.ql-editor table td:last-child,
+.prose table th:last-child,
+.prose table td:last-child,
+.blog-content table th:last-child,
+.blog-content table td:last-child {
+  border-right: none !important;
+}
+
+/* Remove bottom border on the last row */
+.ql-editor table tbody tr:last-child td,
+.prose table tbody tr:last-child td,
+.blog-content table tbody tr:last-child td,
+.ql-editor table tr:last-child td,
+.prose table tr:last-child td,
+.blog-content table tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* Classy Header Aesthetics */
 .ql-editor table th,
 .prose table th,
 .blog-content table th {
-  background-color: hsl(var(--muted)) !important;
+  background-color: hsl(var(--muted) / 0.85) !important;
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  white-space: nowrap !important;
+  border-bottom: 1.5px solid hsl(var(--border)) !important;
+}
+
+/* First column title styling */
+.blog-content table td:first-child,
+.prose table td:first-child {
   font-weight: 600 !important;
   color: hsl(var(--foreground)) !important;
 }
 
+/* Alternating Row Striping */
+.ql-editor table tbody tr:nth-child(even) td,
+.prose table tbody tr:nth-child(even) td,
+.blog-content table tbody tr:nth-child(even) td,
 .ql-editor table tr:nth-child(even) td,
 .prose table tr:nth-child(even) td,
 .blog-content table tr:nth-child(even) td {
-  background-color: hsl(var(--muted) / 0.35);
+  background-color: hsl(var(--muted) / 0.22) !important;
 }
 
-.ql-editor table tr:hover td {
-  background-color: hsl(var(--muted) / 0.6);
+/* Subtle Row Hover */
+.ql-editor table tr:hover td,
+.prose table tr:hover td,
+.blog-content table tr:hover td {
+  background-color: hsl(var(--primary) / 0.05) !important;
+  transition: background-color 0.15s ease !important;
 }
 
 /* Quill Table Button Styling */
