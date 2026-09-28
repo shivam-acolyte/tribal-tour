@@ -22,6 +22,19 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("admin_auth_token");
       } catch {}
     }
+
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      const cleanPath = pathname === "/" ? "" : pathname;
+      const canonicalUrl = `${origin}${cleanPath}`;
+      let canonicalLink = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+      if (!canonicalLink) {
+        canonicalLink = document.createElement("link");
+        canonicalLink.setAttribute("rel", "canonical");
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute("href", canonicalUrl);
+    }
   }, [pathname]);
 
   const [queryClient] = useState(() => new QueryClient({
