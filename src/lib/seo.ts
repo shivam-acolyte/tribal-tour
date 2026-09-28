@@ -8,8 +8,8 @@ export const BRAND = {
   name: "Tribal Discovery Tour",
   shortName: "TDT",
   description: "Authentic tribal tourism experiences in Rajasthan, Odisha, Gujarat, and Northeast India",
-  url: "https://tribaldiscoverytour.com",
-  image: "https://tribaldiscoverytour.com/og-image.jpg", // Update with your actual image URL
+  url: "https://www.tribaldiscoverytour.com",
+  image: "https://www.tribaldiscoverytour.com/og-image.jpg", // Update with your actual image URL
   email: "info@tribaldiscoverytour.com",
   phone: "+919436045075",
   address: {

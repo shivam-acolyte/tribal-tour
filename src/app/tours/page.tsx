@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: PAGE_DEFAULTS.tours.title,
   description: PAGE_DEFAULTS.tours.description,
   keywords: PAGE_DEFAULTS.tours.keywords.split(", "),
-  alternates: { canonical: "https://tribaldiscoverytour.com/tours" },
+  alternates: { canonical: "https://www.tribaldiscoverytour.com/tours" },
 };
 
 export default function ToursPage() {

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: PAGE_DEFAULTS.about.description,
   keywords: PAGE_DEFAULTS.about.keywords.split(", "),
   alternates: {
-    canonical: "https://tribaldiscoverytour.com/about",
+    canonical: "https://www.tribaldiscoverytour.com/about",
   },
 };
 

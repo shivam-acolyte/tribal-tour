@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: PAGE_DEFAULTS.blog.title,
   description: PAGE_DEFAULTS.blog.description,
   keywords: PAGE_DEFAULTS.blog.keywords.split(", "),
-  alternates: { canonical: "https://tribaldiscoverytour.com/blog" },
+  alternates: { canonical: "https://www.tribaldiscoverytour.com/blog" },
 };
 
 export default function BlogPage() {
