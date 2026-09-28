@@ -3,18 +3,43 @@ import { query } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 
 // ── GET /api/blogs ─────────────────────────────────────────────────────────────
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const rows = await query(`
+    const { searchParams } = new URL(req.url);
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : null;
+    const category = searchParams.get("category");
+    const includeContent = searchParams.get("includeContent") === "true";
+
+    const contentSelect = includeContent ? ", content" : "";
+    let sql = `
       SELECT
-        slug, title, excerpt, content, image, category,
+        slug, title, excerpt${contentSelect}, image, category,
         author, author_image AS "authorImage", author_bio AS "authorBio",
         date, read_time AS "readTime", is_hidden AS "isHidden",
         seo_title AS "seoTitle", seo_description AS "seoDescription",
         seo_keywords AS "seoKeywords"
       FROM blogs
-      ORDER BY updated_at DESC
-    `);
+    `;
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    if (category && category !== "All") {
+      params.push(category);
+      conditions.push(`category = $${params.length}`);
+    }
+
+    if (conditions.length > 0) {
+      sql += ` WHERE ${conditions.join(" AND ")}`;
+    }
+
+    sql += ` ORDER BY updated_at DESC`;
+
+    if (limit && limit > 0) {
+      params.push(limit);
+      sql += ` LIMIT $${params.length}`;
+    }
+
+    const rows = await query(sql, params);
     if (rows && rows.length > 0) {
       return NextResponse.json(rows);
     }
