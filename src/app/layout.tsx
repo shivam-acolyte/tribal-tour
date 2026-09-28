@@ -20,7 +20,6 @@ const dmSans = DM_Sans({
 
 const caveat = Caveat({
   subsets: ["latin"],
-  weight: ["600", "700"],
   variable: "--font-accent",
   display: "swap",
 });

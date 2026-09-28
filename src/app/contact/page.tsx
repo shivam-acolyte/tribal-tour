@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: PAGE_DEFAULTS.contact.title,
   description: PAGE_DEFAULTS.contact.description,
   keywords: PAGE_DEFAULTS.contact.keywords.split(", "),
-  alternates: { canonical: "https://tribaldiscoverytour.com/contact" },
+  alternates: { canonical: "https://www.tribaldiscoverytour.com/contact" },
 };
 
 export default function ContactPage() {
