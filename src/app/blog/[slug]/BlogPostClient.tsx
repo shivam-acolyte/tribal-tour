@@ -25,16 +25,18 @@ function wrapTablesInHtml(html: string): string {
 
 interface Props {
   slug: string;
+  initialBlog?: BlogPostType | null;
 }
 
-export default function BlogPostClient({ slug }: Props) {
+export default function BlogPostClient({ slug, initialBlog }: Props) {
   const localFallback = initialBlogs.find((b) => b.slug === slug) || null;
-  const [blog, setBlog] = useState<BlogPostType | null>(localFallback);
+  const currentBlog = initialBlog || localFallback;
+  const [blog, setBlog] = useState<BlogPostType | null>(currentBlog);
   const [related, setRelated] = useState<BlogPostType[]>(
     initialBlogs.filter((b) => b.slug !== slug && !b.isHidden).slice(0, 3)
   );
-  const [loading, setLoading] = useState(!localFallback);
-  const [safeHtml, setSafeHtml] = useState(wrapTablesInHtml(localFallback?.content || ""));
+  const [loading, setLoading] = useState(!currentBlog);
+  const [safeHtml, setSafeHtml] = useState(wrapTablesInHtml(currentBlog?.content || ""));
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,16 +96,18 @@ export default function BlogPostClient({ slug }: Props) {
   useEffect(() => {
     const fetchBlog = async () => {
       try {
-        const res = await fetch(`/api/blogs/${slug}`);
-        if (res.ok) {
-          const blogData = await res.json();
-          if (blogData && blogData.slug) {
-            setBlog(blogData);
+        if (!initialBlog) {
+          const res = await fetch(`/api/blogs/${slug}`);
+          if (res.ok) {
+            const blogData = await res.json();
+            if (blogData && blogData.slug) {
+              setBlog(blogData);
+            } else if (localFallback) {
+              setBlog(localFallback);
+            }
           } else if (localFallback) {
             setBlog(localFallback);
           }
-        } else if (localFallback) {
-          setBlog(localFallback);
         }
 
         const allRes = await fetch("/api/blogs");
@@ -116,13 +120,13 @@ export default function BlogPostClient({ slug }: Props) {
         }
       } catch (error) {
         console.error("Error fetching blog, using local fallback:", error);
-        if (localFallback) setBlog(localFallback);
+        if (localFallback && !blog) setBlog(localFallback);
       } finally {
         setLoading(false);
       }
     };
     if (slug) fetchBlog();
-  }, [slug, localFallback]);
+  }, [slug, initialBlog, localFallback]);
 
   if (loading) {
     return (
@@ -163,7 +167,22 @@ export default function BlogPostClient({ slug }: Props) {
               <Link href="/blog" className="hover:text-orange">Blog</Link> &gt;{" "}
               <span className="text-foreground">{blog.title}</span>
             </p>
-            <img src={blog.image} alt={blog.title} className="w-full h-64 md:h-96 object-cover rounded-2xl mb-6" />
+            <div className="w-full h-64 md:h-96 rounded-2xl mb-6 overflow-hidden bg-muted">
+              <img
+                src={blog.image || "/uploads/tours/nagaland-aoling-festival-tour-main.jpg"}
+                alt={blog.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.retried) {
+                    target.dataset.retried = "true";
+                    setTimeout(() => {
+                      target.src = blog.image;
+                    }, 1500);
+                  }
+                }}
+              />
+            </div>
             <div className="mb-4">
               <span className="px-3.5 py-1 bg-orange/10 text-orange text-xs rounded-full font-semibold border border-orange/20">{blog.category}</span>
             </div>

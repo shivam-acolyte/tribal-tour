@@ -62,9 +62,9 @@ function getPool(): Pool {
   const newPool = new Pool({
     connectionString: currentUrl,
     ssl: useSSL ? { rejectUnauthorized: false } : false,
-    max: 10,
+    max: 25,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 15000,
   });
 
   globalThis._pgPool = newPool;

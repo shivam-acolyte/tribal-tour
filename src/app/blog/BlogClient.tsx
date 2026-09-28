@@ -12,12 +12,13 @@ import { blogs as initialBlogs } from "@/lib/data/blogs";
 
 const categories = ["All", "Travel Tips", "Destinations", "Adventure", "Food", "Culture"];
 
-export default function BlogClient() {
+export default function BlogClient({ initialPosts }: { initialPosts?: BlogPost[] }) {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [posts, setPosts] = useState<BlogPost[]>(initialBlogs);
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts && initialPosts.length > 0 ? initialPosts : initialBlogs);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (initialPosts && initialPosts.length > 0) return;
     const fetchBlogs = async () => {
       try {
         const res = await fetch("/api/blogs");
@@ -32,7 +33,7 @@ export default function BlogClient() {
       }
     };
     fetchBlogs();
-  }, []);
+  }, [initialPosts]);
 
   const visible = posts.filter((b) => !b.isHidden);
   const filtered = activeCategory === "All" ? visible : visible.filter((b) => b.category === activeCategory);
@@ -80,8 +81,22 @@ export default function BlogClient() {
                     whileHover={{ y: -6 }}
                     className="bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-shadow group"
                   >
-                    <div className="h-48 overflow-hidden">
-                      <img src={blog.image} alt={blog.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                    <div className="h-48 overflow-hidden bg-muted">
+                      <img
+                        src={blog.image || "/uploads/tours/nagaland-aoling-festival-tour-main.jpg"}
+                        alt={blog.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.dataset.retried) {
+                            target.dataset.retried = "true";
+                            setTimeout(() => {
+                              target.src = blog.image;
+                            }, 1500);
+                          }
+                        }}
+                      />
                     </div>
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-2">
