@@ -5,6 +5,9 @@ import { query } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 import { BlogPost } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: PAGE_DEFAULTS.blog.title,
   description: PAGE_DEFAULTS.blog.description,
@@ -16,7 +19,7 @@ async function getBlogs(): Promise<BlogPost[]> {
   try {
     const rows = await query<BlogPost>(`
       SELECT
-        slug, title, excerpt, content, image, category,
+        slug, title, excerpt, image, category,
         author, author_image AS "authorImage", author_bio AS "authorBio",
         date, read_time AS "readTime", is_hidden AS "isHidden",
         seo_title AS "seoTitle", seo_description AS "seoDescription",

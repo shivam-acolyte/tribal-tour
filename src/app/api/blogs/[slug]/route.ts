@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { query, queryOne } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 
@@ -74,6 +75,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     values.push(slug);
 
     await query(`UPDATE blogs SET ${setClauses.join(", ")} WHERE slug = $${i}`, values);
+    try {
+      revalidatePath("/blog");
+      revalidatePath(`/blog/${slug}`);
+      revalidatePath("/");
+      revalidatePath("/api/blogs");
+    } catch {}
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error("[PATCH /api/blogs/[slug]]", err);
@@ -86,6 +93,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const { slug } = await params;
     await query("DELETE FROM blogs WHERE slug = $1", [slug]);
+    try {
+      revalidatePath("/blog");
+      revalidatePath(`/blog/${slug}`);
+      revalidatePath("/");
+      revalidatePath("/api/blogs");
+    } catch {}
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error("[DELETE /api/blogs/[slug]]", err);
