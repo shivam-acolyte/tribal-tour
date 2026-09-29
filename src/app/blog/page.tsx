@@ -16,7 +16,7 @@ async function getBlogs(): Promise<BlogPost[]> {
   try {
     const rows = await query<BlogPost>(`
       SELECT
-        slug, title, excerpt, content, image, category,
+        slug, title, excerpt, image, category,
         author, author_image AS "authorImage", author_bio AS "authorBio",
         date, read_time AS "readTime", is_hidden AS "isHidden",
         seo_title AS "seoTitle", seo_description AS "seoDescription",

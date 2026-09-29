@@ -18,7 +18,7 @@ const NewsSection = () => {
   useEffect(() => {
     const fetchLatestBlogs = async () => {
       try {
-        const res = await fetch("/api/blogs");
+        const res = await fetch("/api/blogs?limit=3");
         const data = await res.json();
 
         if (Array.isArray(data) && data.length > 0) {
@@ -49,21 +49,40 @@ const NewsSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {posts.map((n, i) => (
               <motion.div
-                key={n.title}
-                initial={{ opacity: 0, y: 20 }}
+                key={n.slug || n.title}
+                initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
                 whileHover={{ y: -6 }}
                 className="bg-card rounded-2xl overflow-hidden card-shadow transition-shadow hover:card-shadow-hover cursor-pointer"
               >
-                {n.slug && n.slug !== "#" ? (
-                  <Link href={`/blog/${n.slug}`}>
-                    <img src={n.image} alt={n.title} width="400" height="192" decoding="async" className="w-full h-48 object-cover" loading="lazy" />
-                  </Link>
-                ) : (
-                  <img src={n.image} alt={n.title} width="400" height="192" decoding="async" className="w-full h-48 object-cover" loading="lazy" />
-                )}
+                <div className="w-full h-48 bg-muted overflow-hidden">
+                  {n.slug && n.slug !== "#" ? (
+                    <Link href={`/blog/${n.slug}`}>
+                      <img
+                        src={n.image || "/uploads/tours/nagaland-aoling-festival-tour-main.jpg"}
+                        alt={n.title}
+                        width="400"
+                        height="192"
+                        decoding="async"
+                        fetchPriority={i === 0 ? "high" : "auto"}
+                        className="w-full h-48 object-cover transition-transform duration-500 hover:scale-105"
+                        loading={i < 2 ? "eager" : "lazy"}
+                      />
+                    </Link>
+                  ) : (
+                    <img
+                      src={n.image || "/uploads/tours/nagaland-aoling-festival-tour-main.jpg"}
+                      alt={n.title}
+                      width="400"
+                      height="192"
+                      decoding="async"
+                      className="w-full h-48 object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
                 <div className="p-5">
                   <p className="text-xs text-muted-foreground mb-2">{n.date}</p>
                   {n.slug && n.slug !== "#" ? (
