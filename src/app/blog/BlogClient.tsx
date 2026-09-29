@@ -22,22 +22,27 @@ export default function BlogClient({ initialPosts }: { initialPosts?: BlogPost[]
   const gridTopRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialPosts && initialPosts.length > 0) return;
+    if (initialPosts && initialPosts.length > 0) {
+      setPosts(initialPosts);
+    }
+    let isMounted = true;
     const fetchBlogs = async () => {
       try {
-        setLoading(true);
         const res = await fetch("/api/blogs");
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setPosts(data);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setPosts(data);
+          }
         }
       } catch (err) {
-        console.error("Error fetching blogs, using local fallback:", err);
-      } finally {
-        setLoading(false);
+        console.error("Error refreshing blogs:", err);
       }
     };
     fetchBlogs();
+    return () => {
+      isMounted = false;
+    };
   }, [initialPosts]);
 
   const handleCategoryChange = (cat: string) => {

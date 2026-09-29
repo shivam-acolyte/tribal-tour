@@ -1372,14 +1372,26 @@ function BlogsPanel() {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       setForm(toSave);
-      const updated = [...blogs];
-      if (selected !== null) {
-        updated[selected] = toSave;
-      } else {
-        updated.push(toSave);
-        setSelected(updated.length - 1);
+      try {
+        const refreshed = await fetch("/api/blogs");
+        if (refreshed.ok) {
+          const freshList = await refreshed.json();
+          if (Array.isArray(freshList)) {
+            setBlogs(freshList);
+            const newIdx = freshList.findIndex((x: any) => x.slug === toSave.slug);
+            if (newIdx !== -1) setSelected(newIdx);
+          }
+        }
+      } catch {
+        const updated = [...blogs];
+        if (selected !== null) {
+          updated[selected] = toSave;
+        } else {
+          updated.unshift(toSave);
+          setSelected(0);
+        }
+        setBlogs(updated);
       }
-      setBlogs(updated);
       if (asDraft) {
         alert("📝 Blog saved as draft (not published)!");
       } else {

@@ -5,6 +5,9 @@ import { query } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 import { BlogPost } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: PAGE_DEFAULTS.blog.title,
   description: PAGE_DEFAULTS.blog.description,
