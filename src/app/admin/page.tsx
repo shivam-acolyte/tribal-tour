@@ -1829,6 +1829,7 @@ function BlogsPanel() {
                     </div>
 
                     <ReactQuill
+                      key={form.slug}
                       ref={quillRef}
                       theme="snow"
                       value={form.content}
