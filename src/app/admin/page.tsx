@@ -1348,7 +1348,7 @@ function BlogsPanel() {
   };
 
   useEffect(() => {
-    fetch("/api/blogs")
+    fetch("/api/blogs?includeContent=true")
       .then(r => r.json())
       .then(data => { setBlogs(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { setBlogs([]); setLoading(false); });
@@ -1373,7 +1373,7 @@ function BlogsPanel() {
       if (!res.ok) throw new Error((await res.json()).error);
       setForm(toSave);
       try {
-        const refreshed = await fetch("/api/blogs");
+        const refreshed = await fetch("/api/blogs?includeContent=true");
         if (refreshed.ok) {
           const freshList = await refreshed.json();
           if (Array.isArray(freshList)) {
@@ -1424,7 +1424,7 @@ function BlogsPanel() {
     for (const blog of localBlogs) {
       await fetch("/api/blogs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(blog) });
     }
-    const res = await fetch("/api/blogs");
+    const res = await fetch("/api/blogs?includeContent=true");
     setBlogs(await res.json());
     alert("✅ All local blogs migrated!");
   };
