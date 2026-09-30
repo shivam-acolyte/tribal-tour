@@ -8,15 +8,14 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FAQSection from "@/components/shared/FAQSection";
 import { BlogPost } from "@/lib/types";
-import { blogs as initialBlogs } from "@/lib/data/blogs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const categories = ["All", "Travel Tips", "Destinations", "Adventure", "Food", "Culture"];
 const POSTS_PER_PAGE = 9;
 
-export default function BlogClient({ initialPosts }: { initialPosts?: BlogPost[] }) {
+export default function BlogClient({ initialPosts = [] }: { initialPosts?: BlogPost[] }) {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [posts, setPosts] = useState<BlogPost[]>(initialPosts && initialPosts.length > 0 ? initialPosts : initialBlogs);
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const gridTopRef = useRef<HTMLDivElement>(null);

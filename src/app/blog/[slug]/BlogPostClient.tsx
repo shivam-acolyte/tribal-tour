@@ -7,7 +7,6 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { BlogPost as BlogPostType } from "@/lib/types";
 import { BRAND } from "@/lib/seo";
-import { blogs as initialBlogs } from "@/lib/data/blogs";
 
 // DOMPurify is browser-only; lazy import to avoid SSR issues
 let DOMPurify: typeof import("dompurify").default | null = null;
@@ -29,12 +28,9 @@ interface Props {
 }
 
 export default function BlogPostClient({ slug, initialBlog }: Props) {
-  const localFallback = initialBlogs.find((b) => b.slug === slug) || null;
-  const currentBlog = initialBlog || localFallback;
+  const currentBlog = initialBlog || null;
   const [blog, setBlog] = useState<BlogPostType | null>(currentBlog);
-  const [related, setRelated] = useState<BlogPostType[]>(
-    initialBlogs.filter((b) => b.slug !== slug && !b.isHidden).slice(0, 3)
-  );
+  const [related, setRelated] = useState<BlogPostType[]>([]);
   const [loading, setLoading] = useState(!currentBlog);
   const [safeHtml, setSafeHtml] = useState(wrapTablesInHtml(currentBlog?.content || ""));
   const contentRef = useRef<HTMLDivElement>(null);
@@ -102,11 +98,7 @@ export default function BlogPostClient({ slug, initialBlog }: Props) {
             const blogData = await res.json();
             if (blogData && blogData.slug) {
               setBlog(blogData);
-            } else if (localFallback) {
-              setBlog(localFallback);
             }
-          } else if (localFallback) {
-            setBlog(localFallback);
           }
         }
 
@@ -119,14 +111,13 @@ export default function BlogPostClient({ slug, initialBlog }: Props) {
           }
         }
       } catch (error) {
-        console.error("Error fetching blog, using local fallback:", error);
-        if (localFallback && !blog) setBlog(localFallback);
+        console.error("Error fetching blog:", error);
       } finally {
         setLoading(false);
       }
     };
     if (slug) fetchBlog();
-  }, [slug, initialBlog, localFallback]);
+  }, [slug, initialBlog]);
 
   if (loading) {
     return (

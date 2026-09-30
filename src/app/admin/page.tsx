@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Tour, BlogPost, Lead } from "@/lib/types";
 import { tours as localTours } from "@/lib/data/tours";
-import { blogs as localBlogs } from "@/lib/data/blogs";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(
@@ -1450,6 +1449,7 @@ function BlogsPanel() {
 
   const handleMigrate = async () => {
     if (!confirm("Upload all local blogs.ts data to PostgreSQL?")) return;
+    const { blogs: localBlogs } = await import("@/lib/data/blogs");
     for (const blog of localBlogs) {
       await fetch("/api/blogs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(blog) });
     }
