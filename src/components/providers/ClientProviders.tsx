@@ -11,6 +11,7 @@ import ScrollToTop from "@/components/layout/ScrollToTop";
 import WelcomePopup from "@/components/shared/WelcomePopup";
 import BookingModal from "@/components/shared/BookingModal";
 import WhatsAppCTA from "@/components/shared/WhatsAppCTA";
+import InstagramCTA from "@/components/shared/InstagramCTA";
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -55,6 +56,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
           <Sonner />
           {!pathname?.startsWith("/admin") && <WelcomePopup />}
           <BookingModal />
+          <InstagramCTA />
           <WhatsAppCTA />
         </BookingProvider>
       </TooltipProvider>
