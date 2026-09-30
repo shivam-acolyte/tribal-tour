@@ -6,6 +6,16 @@ import { join } from "path";
 import { query } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const revalidate = 0;
+
+const noCacheHeaders = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Pragma": "no-cache",
+  "Expires": "0",
+};
+
 // ── GET /api/blogs ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
@@ -45,12 +55,12 @@ export async function GET(req: NextRequest) {
 
     const rows = await query(sql, params);
     if (rows && rows.length > 0) {
-      return NextResponse.json(rows);
+      return NextResponse.json(rows, { headers: noCacheHeaders });
     }
-    return NextResponse.json(initialBlogs);
+    return NextResponse.json(initialBlogs, { headers: noCacheHeaders });
   } catch (err: any) {
     console.error("[GET /api/blogs] DB fallback triggered:", err?.message || err);
-    return NextResponse.json(initialBlogs);
+    return NextResponse.json(initialBlogs, { headers: noCacheHeaders });
   }
 }
 

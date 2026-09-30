@@ -19,14 +19,50 @@ const WelcomePopup = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      sessionStorage.removeItem("welcome_dismissed");
-    } catch {}
-
     if (pathname?.startsWith("/admin")) {
       setShow(false);
       return;
     }
+
+    const isHomePage = pathname === "/" || pathname === "";
+
+    // ── Homepage: Show popup when site is opened and whenever homepage is refreshed ──
+    if (isHomePage) {
+      setDestination("North East India Special Tour");
+      setShow(false);
+      const timer = setTimeout(() => {
+        setShow(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+
+    // ── Other Pages (Blogs, Tours, Packages, etc.): Keep existing single-show & 60% scroll behavior ──
+    try {
+      // 1. If user already submitted enquiry, do not show popup again in this session
+      if (sessionStorage.getItem("popup_submitted")) {
+        setShow(false);
+        return;
+      }
+
+      // 2. If popup was already shown or dismissed on this specific page, do not show again
+      const pageKey = `popup_shown_${pathname}`;
+      if (sessionStorage.getItem(pageKey)) {
+        setShow(false);
+        return;
+      }
+
+      // 3. Track visited page history: if user returns back to an already visited page, do not show popup
+      const rawVisited = sessionStorage.getItem("popup_visited_pages");
+      const visitedPages: string[] = rawVisited ? JSON.parse(rawVisited) : [];
+      if (visitedPages.includes(pathname)) {
+        setShow(false);
+        return;
+      }
+
+      // Mark this page path as visited
+      visitedPages.push(pathname);
+      sessionStorage.setItem("popup_visited_pages", JSON.stringify(visitedPages));
+    } catch {}
 
     // Auto-detect destination if on a tour detail page
     if (pathname?.startsWith("/tours/") && pathname.split("/").length > 2) {
@@ -41,16 +77,40 @@ const WelcomePopup = () => {
     }
 
     setShow(false);
-    const timer = setTimeout(() => {
-      setShow(true);
-    }, 2000);
 
-    return () => clearTimeout(timer);
+    let triggered = false;
+    const handleScroll = () => {
+      if (triggered) return;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const scrollPercentage = (scrollTop / totalHeight) * 100;
+        if (scrollPercentage >= 60) {
+          triggered = true;
+          try {
+            sessionStorage.setItem(`popup_shown_${pathname}`, "true");
+          } catch {}
+          setShow(true);
+          window.removeEventListener("scroll", handleScroll);
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, [pathname]);
 
   if (pathname?.startsWith("/admin")) return null;
 
   const close = () => {
+    try {
+      if (pathname && pathname !== "/" && pathname !== "") {
+        sessionStorage.setItem(`popup_shown_${pathname}`, "true");
+      }
+    } catch {}
     setShow(false);
     setTimeout(() => {
       setSubmitted(false);
@@ -79,6 +139,13 @@ const WelcomePopup = () => {
     }
 
     setSubmitting(true);
+
+    try {
+      sessionStorage.setItem("popup_submitted", "true");
+      if (pathname) {
+        sessionStorage.setItem(`popup_shown_${pathname}`, "true");
+      }
+    } catch {}
 
     // Format WhatsApp message with all typed lead fields
     const message =

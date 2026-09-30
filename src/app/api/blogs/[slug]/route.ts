@@ -3,6 +3,16 @@ import { revalidatePath } from "next/cache";
 import { query, queryOne } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const revalidate = 0;
+
+const noCacheHeaders = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Pragma": "no-cache",
+  "Expires": "0",
+};
+
 interface Params { params: Promise<{ slug: string }> }
 
 // ── GET /api/blogs/[slug] ──────────────────────────────────────────────────────
@@ -22,22 +32,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
     );
 
     if (blog) {
-      return NextResponse.json(blog);
+      return NextResponse.json(blog, { headers: noCacheHeaders });
     }
 
     const fallback = initialBlogs.find((b) => b.slug === slug);
     if (fallback) {
-      return NextResponse.json(fallback);
+      return NextResponse.json(fallback, { headers: noCacheHeaders });
     }
 
-    return NextResponse.json({ error: "Blog not found" }, { status: 404 });
+    return NextResponse.json({ error: "Blog not found" }, { status: 404, headers: noCacheHeaders });
   } catch (err: any) {
     console.error(`[GET /api/blogs/${slug}] DB fallback triggered:`, err?.message || err);
     const fallback = initialBlogs.find((b) => b.slug === slug);
     if (fallback) {
-      return NextResponse.json(fallback);
+      return NextResponse.json(fallback, { headers: noCacheHeaders });
     }
-    return NextResponse.json({ error: "Blog not found" }, { status: 404 });
+    return NextResponse.json({ error: "Blog not found" }, { status: 404, headers: noCacheHeaders });
   }
 }
 

@@ -1348,14 +1348,43 @@ function BlogsPanel() {
   };
 
   useEffect(() => {
-    fetch("/api/blogs")
+    fetch(`/api/blogs?includeContent=true&_t=${Date.now()}`, { cache: "no-store" })
       .then(r => r.json())
       .then(data => { setBlogs(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { setBlogs([]); setLoading(false); });
   }, []);
 
   const hc = (field: keyof BlogPost, value: any) => setForm(p => ({ ...p, [field]: value }));
-  const handleSelect = (i: number) => { setSelected(i); setForm({ ...blogs[i] }); };
+  const handleSelect = async (i: number) => {
+    setSelected(i);
+    const selectedBlog = blogs[i];
+    if (!selectedBlog) return;
+    setForm({ ...selectedBlog });
+
+    // Always fetch the fresh dedicated full record directly from the database
+    if (selectedBlog.slug) {
+      try {
+        const res = await fetch(`/api/blogs/${encodeURIComponent(selectedBlog.slug)}?_t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const fullBlog = await res.json();
+          if (fullBlog && fullBlog.slug === selectedBlog.slug) {
+            setForm(p => (p.slug === selectedBlog.slug ? { ...p, ...fullBlog } : p));
+            setBlogs(prev => {
+              const copy = [...prev];
+              if (copy[i] && copy[i].slug === selectedBlog.slug) {
+                copy[i] = { ...copy[i], ...fullBlog };
+              }
+              return copy;
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh blog content:", err);
+      }
+    }
+  };
   const handleAddNew = () => { setSelected(null); setForm({ ...emptyBlog }); };
 
   const handleSave = async (asDraft = false) => {
@@ -1373,7 +1402,7 @@ function BlogsPanel() {
       if (!res.ok) throw new Error((await res.json()).error);
       setForm(toSave);
       try {
-        const refreshed = await fetch("/api/blogs");
+        const refreshed = await fetch(`/api/blogs?includeContent=true&_t=${Date.now()}`, { cache: "no-store" });
         if (refreshed.ok) {
           const freshList = await refreshed.json();
           if (Array.isArray(freshList)) {
@@ -1424,7 +1453,7 @@ function BlogsPanel() {
     for (const blog of localBlogs) {
       await fetch("/api/blogs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(blog) });
     }
-    const res = await fetch("/api/blogs");
+    const res = await fetch("/api/blogs?includeContent=true");
     setBlogs(await res.json());
     alert("✅ All local blogs migrated!");
   };
