@@ -258,8 +258,12 @@ export default function BlogPostClient({ slug, initialBlog }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {related.map((b) => (
                 <Link key={b.slug} href={`/blog/${b.slug}`} className="bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-shadow group">
-                  <div className="h-40 overflow-hidden">
-                    <img src={b.image} alt={b.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="h-40 overflow-hidden bg-muted">
+                    <img
+                      src={b.image || "/uploads/tours/nagaland-aoling-festival-tour-main.jpg"}
+                      alt={b.title || "Related blog"}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
                   </div>
                   <div className="p-4">
                     <p className="text-xs text-muted-foreground mb-1">{b.date}</p>

@@ -12,30 +12,32 @@ function getDatabaseUrl(): string {
     return process.env.DATABASE_URL;
   }
 
-  // Fallback: read directly from .env files if not loaded into process.env yet
-  try {
-    const candidateFiles = [".env.local", ".env local", ".env"];
-    for (const fileName of candidateFiles) {
-      const envPath = resolve(process.cwd(), fileName);
-      if (existsSync(envPath)) {
-        const content = readFileSync(envPath, "utf-8");
-        for (const line of content.split("\n")) {
-          const trimmed = line.trim();
-          if (trimmed && !trimmed.startsWith("#")) {
-            const idx = trimmed.indexOf("=");
-            if (idx > 0) {
-              const key = trimmed.slice(0, idx).trim();
-              const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
-              if (key === "DATABASE_URL" && val) {
-                process.env.DATABASE_URL = val;
-                return val;
+  // Fallback: read directly from .env files in local development if not in process.env yet
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const candidateFiles = [".env.local", ".env local", ".env"];
+      for (const fileName of candidateFiles) {
+        const envPath = resolve(/* turbopackIgnore: true */ process.cwd(), fileName);
+        if (existsSync(envPath)) {
+          const content = readFileSync(envPath, "utf-8");
+          for (const line of content.split("\n")) {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith("#")) {
+              const idx = trimmed.indexOf("=");
+              if (idx > 0) {
+                const key = trimmed.slice(0, idx).trim();
+                const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
+                if (key === "DATABASE_URL" && val) {
+                  process.env.DATABASE_URL = val;
+                  return val;
+                }
               }
             }
           }
         }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   throw new Error(
     "DATABASE_URL is not set. Add it to your .env.local file.\n" +

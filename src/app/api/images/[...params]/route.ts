@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile, writeFile, mkdir, stat } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
+import { createRequire } from "module";
 import sharp from "sharp";
 import { queryOne } from "@/lib/db/client";
+
+const nodeRequire = createRequire(import.meta.url);
+const nodeFs = nodeRequire("fs") as typeof import("fs");
 
 interface RouteProps {
   params: Promise<{ params: string[] }>;
@@ -18,7 +22,7 @@ interface ImageMeta {
 
 const metaCache = new Map<string, ImageMeta>();
 
-async function findLocalFile(filename: string, folder?: string | null): Promise<string | null> {
+async function loadLocalImageBuffer(filename: string, folder?: string | null): Promise<Buffer | null> {
   if (!filename) return null;
   const baseUploads = join(process.cwd(), "public", "uploads");
   const candidates: string[] = [];
@@ -33,7 +37,11 @@ async function findLocalFile(filename: string, folder?: string | null): Promise<
   );
 
   for (const p of candidates) {
-    if (existsSync(p)) return p;
+    try {
+      if (existsSync(p)) {
+        return await nodeFs.promises.readFile(p);
+      }
+    } catch {}
   }
   return null;
 }
@@ -106,10 +114,7 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
     let mimeType = meta?.mime_type || "image/jpeg";
 
     if (filename) {
-      const localPath = await findLocalFile(filename, folder);
-      if (localPath) {
-        rawBuffer = await readFile(localPath);
-      }
+      rawBuffer = await loadLocalImageBuffer(filename, folder);
     }
 
     // 4. Fallback: fetch from PostgreSQL BYTEA if not on disk
