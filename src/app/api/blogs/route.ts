@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { writeFile } from "fs/promises";
-import { existsSync } from "fs";
-import { join } from "path";
 import { query } from "@/lib/db/client";
 import { blogs as initialBlogs } from "@/lib/data/blogs";
 
@@ -107,32 +104,6 @@ export async function POST(req: NextRequest) {
       revalidatePath("/");
       revalidatePath("/api/blogs");
     } catch {}
-
-    // Persist to local data/blogs.ts in production only so fallback data stays up-to-date without triggering dev file-watcher reloads
-    if (process.env.NODE_ENV === "production") {
-      try {
-        const blogsFilePath = join(process.cwd(), "src", "lib", "data", "blogs.ts");
-        if (existsSync(blogsFilePath)) {
-          const allBlogs = await query(`
-            SELECT
-              slug, title, excerpt, content, image, category,
-              author, author_image AS "authorImage", author_bio AS "authorBio",
-              date, read_time AS "readTime", is_hidden AS "isHidden",
-              seo_title AS "seoTitle", seo_description AS "seoDescription",
-              seo_keywords AS "seoKeywords"
-            FROM blogs
-            ORDER BY updated_at DESC
-          `);
-          if (allBlogs && allBlogs.length > 0) {
-            await writeFile(
-              blogsFilePath,
-              `import { BlogPost } from "../types";\n\nexport const blogs: BlogPost[] = ${JSON.stringify(allBlogs, null, 2)};\n`,
-              "utf-8"
-            );
-          }
-        }
-      } catch {}
-    }
 
     return NextResponse.json({ success: true, slug: b.slug });
   } catch (err: any) {
