@@ -8,7 +8,7 @@ import {
   Menu, X, Eye, EyeOff, LayoutDashboard, FileText, MessageCircle,
   Mail, Phone, Calendar, Shield, RefreshCw, ExternalLink, Clock,
   User, Star, MapPin, Sparkles, Check, Globe, Table as TableIcon,
-  Code, Columns, Rows, Upload, FileUp, Split, FileCode,
+  Code, Columns, Rows, Upload, FileUp, Split, FileCode, Loader2,
 } from "lucide-react";
 import { Tour, BlogPost, Lead } from "@/lib/types";
 import { tours as localTours } from "@/lib/data/tours";
@@ -1106,6 +1106,8 @@ function BlogsPanel() {
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"visual" | "html" | "split" | "preview">("visual");
@@ -1347,7 +1349,7 @@ function BlogsPanel() {
   };
 
   useEffect(() => {
-    fetch(`/api/blogs?includeContent=true&_t=${Date.now()}`, { cache: "no-store" })
+    fetch(`/api/blogs?_t=${Date.now()}`, { cache: "no-store" })
       .then(r => r.json())
       .then(data => { setBlogs(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { setBlogs([]); setLoading(false); });
@@ -1387,7 +1389,10 @@ function BlogsPanel() {
   const handleAddNew = () => { setSelected(null); setForm({ ...emptyBlog }); };
 
   const handleSave = async (asDraft = false) => {
+    if (savingDraft || publishing) return;
     if (!form.title || !form.slug) return alert("Title and Slug are required!");
+    if (asDraft) setSavingDraft(true);
+    else setPublishing(true);
     const toSave: BlogPost = {
       ...form,
       isHidden: asDraft,
@@ -1401,7 +1406,7 @@ function BlogsPanel() {
       if (!res.ok) throw new Error((await res.json()).error);
       setForm(toSave);
       try {
-        const refreshed = await fetch(`/api/blogs?includeContent=true&_t=${Date.now()}`, { cache: "no-store" });
+        const refreshed = await fetch(`/api/blogs?_t=${Date.now()}`, { cache: "no-store" });
         if (refreshed.ok) {
           const freshList = await refreshed.json();
           if (Array.isArray(freshList)) {
@@ -1426,6 +1431,10 @@ function BlogsPanel() {
         alert("✅ Blog published successfully to website!");
       }
     } catch (e: any) { alert("❌ " + e.message); }
+    finally {
+      setSavingDraft(false);
+      setPublishing(false);
+    }
   };
 
   const handleDelete = async (i: number) => {
@@ -1444,7 +1453,7 @@ function BlogsPanel() {
       body: JSON.stringify({ isHidden: b.isHidden }),
     });
     const updated = [...blogs]; updated[i] = b; setBlogs(updated);
-    if (selected === i) setForm(b);
+    if (selected === i) setForm(p => ({ ...p, isHidden: b.isHidden }));
   };
 
   const handleMigrate = async () => {
@@ -1453,7 +1462,7 @@ function BlogsPanel() {
     for (const blog of localBlogs) {
       await fetch("/api/blogs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(blog) });
     }
-    const res = await fetch("/api/blogs?includeContent=true");
+    const res = await fetch("/api/blogs");
     setBlogs(await res.json());
     alert("✅ All local blogs migrated!");
   };
@@ -1548,19 +1557,21 @@ function BlogsPanel() {
             <button onClick={handleMigrate} className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition"><Save size={14} /> Migrate Local Data</button>
             <button
               type="button"
+              disabled={savingDraft || publishing}
               onClick={() => handleSave(true)}
-              className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-800 transition shadow-sm"
+              className="flex items-center gap-1.5 bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-800 transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               title="Save blog as draft (not published on website)"
             >
-              <FileText size={14} /> Draft
+              {savingDraft ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} Draft
             </button>
             <button
               type="button"
+              disabled={savingDraft || publishing}
               onClick={() => handleSave(false)}
-              className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition shadow-sm"
+              className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               title="Publish blog to website"
             >
-              <Globe size={14} /> Publish
+              {publishing ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />} Publish
             </button>
           </div>
         </div>

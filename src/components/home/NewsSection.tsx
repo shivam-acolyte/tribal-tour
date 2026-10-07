@@ -6,9 +6,9 @@ import Link from "next/link";
 import SectionHeader from "@/components/ui/SectionHeader";
 
 const fallbackNews = [
-  { title: "New Rajasthan Tribal Tour Packages Launched", date: "May 10, 2026", excerpt: "Explore Bhil and Rabari tribe villages with our newest Rajasthan tribal adventure itinerary.", image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=500&q=75", slug: "#" },
-  { title: "Hornbill Festival 2026 Tribal Itinerary Released", date: "Apr 20, 2026", excerpt: "Book early for Nagaland's Hornbill Festival and enjoy curated cultural events and village visits.", image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=500&q=75", slug: "#" },
-  { title: "Tribal Discovery Tour Expands to Northeast India", date: "Mar 18, 2026", excerpt: "New tours now include Meghalaya, Arunachal Pradesh and Assam tribal experiences.", image: "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=500&q=75", slug: "#" },
+  { id: "fallback-1", title: "New Rajasthan Tribal Tour Packages Launched", date: "May 10, 2026", excerpt: "Explore Bhil and Rabari tribe villages with our newest Rajasthan tribal adventure itinerary.", image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=500&q=75", slug: "#" },
+  { id: "fallback-2", title: "Hornbill Festival 2026 Tribal Itinerary Released", date: "Apr 20, 2026", excerpt: "Book early for Nagaland's Hornbill Festival and enjoy curated cultural events and village visits.", image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=500&q=75", slug: "#" },
+  { id: "fallback-3", title: "Tribal Discovery Tour Expands to Northeast India", date: "Mar 18, 2026", excerpt: "New tours now include Meghalaya, Arunachal Pradesh and Assam tribal experiences.", image: "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&w=500&q=75", slug: "#" },
 ];
 
 const NewsSection = () => {
@@ -49,7 +49,7 @@ const NewsSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {posts.map((n, i) => (
               <motion.div
-                key={n.slug || n.title}
+                key={n.id || (n.slug && n.slug !== "#" ? n.slug : `${n.title || "news"}-${i}`)}
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
